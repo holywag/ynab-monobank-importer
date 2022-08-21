@@ -1,0 +1,6 @@
+[submodule "api/mono-api"]
+	path = api/mono-api
+	url = https://github.com/holywag/mono-api.git
+[submodule "api/ynab-python"]
+	path = api/ynab-python
+	url = https://github.com/deanmcgregor/ynab-python.git
