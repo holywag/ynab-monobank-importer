@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import ynab
 from monobank import Monobank
 import argparse
