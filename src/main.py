@@ -2,18 +2,12 @@
 
 import ynab
 from monobank import Monobank
-import argparse, json
+import json
 from datetime import datetime
 from category_mappings import CategoryMappings
+import args_parser
 
-parser = argparse.ArgumentParser()
-parser.add_argument('monobank_token', help='monobank API token')
-parser.add_argument('iban', help='IBAN of source monobank account')
-parser.add_argument('ynab_token', help='YNAB API token')
-parser.add_argument('ynab_budget_id', help='ID of target YNAB budget')
-parser.add_argument('ynab_account_id', help='ID of target YNAB account')
-parser.add_argument('category_mappings', help='path to a file containing category mappings')
-args = parser.parse_args()
+args = args_parser.parse_args()
 
 monobank = Monobank(args.monobank_token)
 
