@@ -1,0 +1,19 @@
+{
+    "5814": {
+        "default": {
+            "category_group": "🌍  Quality of Life",
+            "category_name": "🍽  Dining out",
+            "payee_name": "Cafe"
+        },
+        "Замовлення їжі wayforpay": {
+            "payee_name": "Food Delivery"
+        }
+    },
+    "4121": {
+        "default": {
+            "category_group": "🍎  Everyday",
+            "category_name": "🚖  Transportation",
+            "payee_name": "Taxi"
+        }
+    }
+}
