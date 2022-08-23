@@ -35,7 +35,7 @@ budget_id = budgets[args.ynab_budget_name]
 categories_api = ynab.CategoriesApi(ynab_client)
 category_groups = { g.name: {c.name: c.id for c in g.categories} for g in categories_api.get_categories(budget_id).data.category_groups }
 
-mappings = CategoryMappings(json.load(open(args.category_mappings)))
+category_mappings = CategoryMappings(json.load(open(args.category_mappings)))
 
 def get_category_id(category_group_name, category_name):
     category_ids = category_groups.get(category_group_name)
@@ -43,8 +43,8 @@ def get_category_id(category_group_name, category_name):
 
 def stmt_to_transaction(ynab_account_id):
     def impl(stmt):
-        payee = mappings.get_payee(stmt['mcc'], stmt['description']) or stmt['description']
-        category = mappings.get_category(stmt['mcc'], stmt['description'])
+        payee = category_mappings.get_payee(stmt['mcc'], stmt['description']) or stmt['description']
+        category = category_mappings.get_category(stmt['mcc'], stmt['description'])
         category_id = category and get_category_id(category.group, category.name)
         return ynab.SaveTransaction(
             account_id=ynab_account_id,
