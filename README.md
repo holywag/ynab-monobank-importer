@@ -5,5 +5,5 @@ pip install $(ls -d api/*)
 ```
 
 ```
-python src/main.py monobank_token iban ynab_token ynab_budget_name ynab_account_id mappings/category.json
+python src/main.py monobank_token ynab_token ynab_budget_name mappings/accounts.json mappings/category.json
 ```
