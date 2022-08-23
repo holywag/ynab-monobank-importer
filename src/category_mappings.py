@@ -14,7 +14,7 @@ class CategoryMappings:
         mcc_group = self.mappings.get(str(mcc))
 
         if mcc_group:
-            default = mcc_group['default']
+            default = mcc_group.get('default')
             mapping = mcc_group.get(payee_name)
             if mapping:
                 category_group_name = mapping.get('category_group')
@@ -35,12 +35,12 @@ class CategoryMappings:
         mcc_group = self.mappings.get(str(mcc))
 
         if mcc_group:
-            default = mcc_group['default']
+            default = mcc_group.get('default')
             mapping = mcc_group.get(payee_name)
             if mapping:
                 payee = mapping.get('payee')
         
-        if not payee_name:
+        if not payee:
             payee = default and default.get('payee_name')
 
-        return payee or (default and default.get('payee_name'))
+        return payee

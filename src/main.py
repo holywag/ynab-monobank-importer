@@ -2,12 +2,18 @@
 
 import ynab
 from monobank import Monobank
-import json
+import json, argparse
 from datetime import datetime
 from category_mappings import CategoryMappings
-import args_parser
 
-args = args_parser.parse_args()
+parser = argparse.ArgumentParser()
+parser.add_argument('monobank_token', help='monobank API token')
+parser.add_argument('iban', help='IBAN of source monobank account')
+parser.add_argument('ynab_token', help='YNAB API token')
+parser.add_argument('ynab_budget_name', help='name of YNAB budget')
+parser.add_argument('ynab_account_id', help='ID of target YNAB account')
+parser.add_argument('category_mappings', help='path to a file containing category mappings')
+args = parser.parse_args()
 
 monobank = Monobank(args.monobank_token)
 
@@ -24,8 +30,18 @@ ynab_configuration.api_key_prefix['Authorization'] = 'Bearer'
 
 ynab_client = ynab.ApiClient(ynab_configuration)
 
+budgets_api = ynab.BudgetsApi(ynab_client)
+budgets_response = budgets_api.get_budgets()
+budgets = { b.name: b.id for b in budgets_response.data.budgets }
+
+if not args.ynab_budget_name in budgets:
+    print('Budget with the name specified is not found')
+    exit(1)
+
+budget_id = budgets[args.ynab_budget_name]
+
 categories_api = ynab.CategoriesApi(ynab_client)
-categories_response = categories_api.get_categories(args.ynab_budget_id)
+categories_response = categories_api.get_categories(budget_id)
 category_groups = { g.name: {c.name: c.id for c in g.categories} for g in categories_response.data.category_groups }
 
 mappings = CategoryMappings(json.load(open(args.category_mappings)))
@@ -44,9 +60,10 @@ def stmt_to_transaction(s):
         date=datetime.fromtimestamp(int(s['time'])).date(),
         amount=s['amount']*10,
         payee_name=payee,
-        category_id=category_id)
+        category_id=category_id,
+        memo=not category_id and f'mcc: {s["mcc"]}' or None)
 
 trans_api = ynab.TransactionsApi(ynab_client)
 api_response = trans_api.bulk_create_transactions(
-    args.ynab_budget_id, ynab.BulkTransactions(list(map(stmt_to_transaction, statements))))
+    budget_id, ynab.BulkTransactions(list(map(stmt_to_transaction, statements))))
 print(api_response)

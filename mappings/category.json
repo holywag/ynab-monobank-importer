@@ -2,18 +2,46 @@
     "5814": {
         "default": {
             "category_group": "🌍  Quality of Life",
-            "category_name": "🍽  Dining out",
-            "payee": "Cafe"
+            "category_name": "🍽  Dining out"
         },
         "Замовлення їжі wayforpay": {
+            "payee": "Food Delivery"
+        },
+        "Rosterija Kavi": {
+            "payee": "Cafe"
+        }
+    },
+    "5812": {
+        "default": {
+            "category_group": "🌍  Quality of Life",
+            "category_name": "🍽  Dining out"
+        },
+        "Mixologia": {
+            "category_group": "🎩  Maksym",
+            "category_name": "🍺  Fun",
+            "payee": "Hookah Bar"
+        }
+    },
+    "5499": {
+        "default": {
+            "category_group": "🍎  Everyday",
+            "category_name": "🍞  Groceries"
+        },
+        "NashIndik": {
+            "payee": "Supermarket"
+        }
+    },
+    "4829": {
+        "414960****4188": {
+            "category_group": "🌍  Quality of Life",
+            "category_name": "🍽  Dining out",
             "payee": "Food Delivery"
         }
     },
     "4121": {
         "default": {
             "category_group": "🍎  Everyday",
-            "category_name": "🚖  Transportation",
-            "payee": "Taxi"
+            "category_name": "🚖  Transportation"
         }
     }
 }
