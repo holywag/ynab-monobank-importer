@@ -4,6 +4,7 @@ from monobank import Monobank
 from category_mappings import CategoryMappings
 from ynab_api_wrapper import YnabApiWrapper 
 from transaction_converter import TransactionConverter
+from cancel_filter import CancelFilter
 import json, argparse
 
 parser = argparse.ArgumentParser()
@@ -36,6 +37,6 @@ for iban,ynab_account_name in account_mappings.items():
     if len(statements) == 0:
         print(f'No statements in {ynab_account_name} for this period. Skipping.')
         continue
-    bulk = ynab.bulk_create_transactions(
-        budget_id, list(map(TransactionConverter(ynab, budget_id, ynab_account_id, category_mappings), statements)))
+    transactions = list(map(TransactionConverter(ynab, budget_id, ynab_account_id, category_mappings), statements))
+    bulk = ynab.bulk_create_transactions(budget_id, list(filter(CancelFilter(transactions), transactions)))
     print(f'Imported {len(bulk.transaction_ids)} transactions out of {len(statements)} bank statements to {ynab_account_name}')
