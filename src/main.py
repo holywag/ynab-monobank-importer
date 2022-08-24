@@ -3,8 +3,7 @@
 from monobank import Monobank
 from category_mappings import CategoryMappings
 from ynab_api_wrapper import YnabApiWrapper 
-from collections import namedtuple
-from datetime import datetime
+from transaction_converter import TransactionConverter
 import json, argparse
 
 parser = argparse.ArgumentParser()
@@ -27,22 +26,6 @@ if not budget_id:
     print('Budget with the name specified is not found')
     exit(1)
 
-Transaction = namedtuple("Transaction", "account_id date amount payee_name category_id memo")
-
-def stmt_to_transaction(ynab_account_id):
-    def impl(stmt):
-        payee = category_mappings.get_payee(stmt['mcc'], stmt['description']) or stmt['description']
-        category = category_mappings.get_category(stmt['mcc'], stmt['description'])
-        category_id = category and ynab.get_category_id_by_name(budget_id, category.group, category.name)
-        return {
-            'account_id': ynab_account_id,
-            'date': datetime.fromtimestamp(int(stmt['time'])).date(),
-            'amount': stmt['amount']*10,
-            'payee_name': payee,
-            'category_id' :category_id,
-            'memo': not category_id and f'mcc: {stmt["mcc"]}' or None }
-    return impl
-
 for iban,ynab_account_name in account_mappings.items():
     ynab_account_id = ynab.get_account_id_by_name(budget_id, ynab_account_name)
     if not ynab_account_id:
@@ -54,5 +37,5 @@ for iban,ynab_account_name in account_mappings.items():
         print(f'No statements in {ynab_account_name} for this period. Skipping.')
         continue
     bulk = ynab.bulk_create_transactions(
-        budget_id, list(map(stmt_to_transaction(ynab_account_id), statements)))
+        budget_id, list(map(TransactionConverter(ynab, budget_id, ynab_account_id, category_mappings), statements)))
     print(f'Imported {len(bulk.transaction_ids)} transactions out of {len(statements)} bank statements to {ynab_account_name}')
