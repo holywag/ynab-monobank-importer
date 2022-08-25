@@ -28,6 +28,7 @@ if not budget_id:
     exit(1)
 
 for iban,ynab_account_name in account_mappings.items():
+    print(f'Starting import from {iban}')
     ynab_account_id = ynab.get_account_id_by_name(budget_id, ynab_account_name)
     if not ynab_account_id:
         print(f'The account with the name {ynab_account_name} is not found. Skipping.')
@@ -37,6 +38,13 @@ for iban,ynab_account_name in account_mappings.items():
     if len(statements) == 0:
         print(f'No statements in {ynab_account_name} for this period. Skipping.')
         continue
-    transactions = list(map(TransactionConverter(ynab, budget_id, ynab_account_id, category_mappings), statements))
-    bulk = ynab.bulk_create_transactions(budget_id, list(filter(CancelFilter(transactions), transactions)))
-    print(f'Imported {len(bulk.transaction_ids)} transactions out of {len(statements)} bank statements to {ynab_account_name}')
+    cancel_filter = CancelFilter(statements)
+    bulk = ynab.bulk_create_transactions(budget_id, 
+        list(
+            map(TransactionConverter(ynab, budget_id, ynab_account_id, category_mappings),
+                filter(cancel_filter,
+                    statements))))
+    print(f'Imported {len(bulk.transaction_ids)} transactions out of {len(statements)} bank statements to {ynab_account_name}'
+          f'{len(cancel_filter.skip_transactions) and f", {len(cancel_filter.skip_transactions)} statements were skipped due to being cancelled"}')
+    if len(bulk.duplicate_import_ids):
+        print(f'The following transactions were duplicate: {bulk.duplicate_import_ids}')

@@ -47,5 +47,8 @@ class YnabApiWrapper:
         response = transactions_api.bulk_create_transactions(
             budget_id, ynab.BulkTransactions(list(map(lambda t: ynab.SaveTransaction(**t), transactions))))
         return response.data.bulk
-        
 
+    def get_transactions(self, budget_id):
+        transactions_api = ynab.TransactionsApi(self.__client)
+        response = transactions_api.get_transactions(budget_id)
+        return response.data.transactions
