@@ -27,8 +27,11 @@ if not budget_id:
     print('Budget with the name specified is not found')
     exit(1)
 
-for iban,ynab_account_name in account_mappings.items():
+for iban,account_data in account_mappings.items():
+    if not account_data['import_from_this_account']:
+        continue
     print(f'Starting import from {iban}')
+    ynab_account_name = account_data['ynab_name']
     ynab_account_id = ynab.get_account_id_by_name(budget_id, ynab_account_name)
     if not ynab_account_id:
         print(f'The account with the name {ynab_account_name} is not found. Skipping.')

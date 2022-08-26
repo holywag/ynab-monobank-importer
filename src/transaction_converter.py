@@ -14,12 +14,15 @@ class TransactionConverter:
         mcc = monobank_statement['mcc']
         payee = monobank_statement['description']
         category = self.category_mappings.get_category(mcc, payee)
-        payee = self.category_mappings.get_payee(mcc, payee) or payee
         category_id = category and self.ynab.get_category_id_by_name(self.budget_id, category.group, category.name)
+        transfer_account = self.category_mappings.get_field(mcc, payee, 'transfer_account')
+        payee_id = transfer_account and self.ynab.get_transfer_payee_id_by_account_name(self.budget_id, transfer_account)
+        payee_name = self.category_mappings.get_field(mcc, payee, 'payee', payee)
         return {
             'account_id': self.ynab_account_id,
             'date': datetime.fromtimestamp(int(monobank_statement['time'])).date(),
             'amount': monobank_statement['amount']*10,
-            'payee_name': payee,
+            'payee_name': payee_name,
             'category_id': category_id,
-            'memo': not category_id and f'mcc: {mcc}' or None }
+            'memo': not category_id and not payee_id and f'mcc: {mcc}' or None,
+            'payee_id': payee_id }

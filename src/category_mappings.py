@@ -44,3 +44,19 @@ class CategoryMappings:
             payee = default and default.get('payee_name')
 
         return payee
+
+    def get_field(self, mcc, payee, field_name, default_value=None):
+        field_value = None
+        default = None
+
+        mcc_group = self.mappings.get(str(mcc))
+
+        if mcc_group:
+            default = mcc_group.get('default')
+            mapping = mcc_group.get(payee)
+            if mapping and field_name in mapping:
+                return mapping[field_name]
+            if default and field_name in default:
+                return default[field_name]
+
+        return default_value
