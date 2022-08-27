@@ -1,7 +1,11 @@
 import ynab
 from collections import namedtuple
 
- 
+class YnabAccountNotFound(Exception):
+    def __init__(self, account_name):
+        super().__init__(f'YNAB account with the specified name not found: {account_name}')
+        self.account_name = account_name
+
 class YnabApiWrapper:
     Account = namedtuple('Account', 'id transfer_payee_id')
 
@@ -24,7 +28,7 @@ class YnabApiWrapper:
             self.__budgets = { b.name: b.id for b in budgets_response.data.budgets }
         return self.__budgets
 
-    def accounts(self, budget_id):
+    def get_accounts(self, budget_id):
         accounts = self.__accounts.get(budget_id)
         if accounts is None:
             accounts_api = ynab.AccountsApi(self.__client)
@@ -47,12 +51,18 @@ class YnabApiWrapper:
         return category_group and category_group.get(category_name)
 
     def get_account_id_by_name(self, budget_id, account_name):
-        account = self.accounts(budget_id).get(account_name)
-        return account and account.id
+        accounts = self.get_accounts(budget_id)
+        try:
+            return accounts[account_name].id
+        except ValueError:
+            raise YnabAccountNotFound(account_name)
 
     def get_transfer_payee_id_by_account_name(self, budget_id, account_name):
-        account = self.accounts(budget_id).get(account_name)
-        return account and account.transfer_payee_id
+        accounts = self.get_accounts(budget_id)
+        try:
+            return accounts[account_name].transfer_payee_id
+        except ValueError:
+            raise YnabAccountNotFound(account_name)
 
     def bulk_create_transactions(self, budget_id, transactions):
         transactions_api = ynab.TransactionsApi(self.__client)

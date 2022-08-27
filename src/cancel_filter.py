@@ -3,7 +3,7 @@ from collections import defaultdict
 class CancelFilter:
     """Callable object that acts as a filter function that filters out
     cancelled transactions as well as the respective cancel statements.
-    Cancel transaction has a payee field that start with a special prefix.
+    Cancel transaction has a payee field that starts with a special prefix.
     """
 
     cancel_prefix = 'Скасування. '

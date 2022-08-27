@@ -1,4 +1,14 @@
-{
-    "UA663220010000026201234567890": { "ynab_name": "Mono Black", "import_from_this_account": false },
-    "UA903220010000026201234567890": { "ynab_name": "Mono White", "import_from_this_account": true }
-}
+[
+    {
+        "iban": "UA663220010000026201234567890",
+        "ynab_account_name": "Mono Black",
+        "import_n_days": 0,
+        "is_import_enabled": false
+    },
+    {
+        "iban": "UA903220010000026201234567890",
+        "ynab_account_name": "Mono White",
+        "import_n_days": 1,
+        "is_import_enabled": true
+    }
+]
