@@ -33,8 +33,10 @@
     },
     "4829": {
         "Переказ на картку": {
-            "payee": null,
             "transfer_account": "🇺🇦 Mono"
+        },
+        "З білої картки": {
+            "transfer_account": "🏳️ Mono"
         },
         "414960****4188": {
             "category_group": "🌍  Quality of Life",
