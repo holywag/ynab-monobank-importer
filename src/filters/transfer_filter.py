@@ -1,5 +1,3 @@
-from collections import defaultdict
-
 class TransferFilter:
     """Filter object that prevents duplication of transfers between two YNAB accounts.
     If a pair of transactions that describe a single transfer appear in a single set, 
@@ -8,7 +6,6 @@ class TransferFilter:
 
     def __init__(self):
         self.transfer_statements = []
-        self.removed_statements = []
 
     def __make_transfer_id(statement, forward):
         src = statement.ynab_account_name
