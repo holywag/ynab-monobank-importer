@@ -4,7 +4,6 @@ class TransferFilter:
     """Filter object that prevents duplication of transfers between two YNAB accounts.
     If a pair of transactions that describe a single transfer appear in a single set, 
     YNAB will register both of them independently. This filter object will remove one in each pair.
-    A pair is identified by 'amount', 'time' and 'transfer_account' transaction fields.
     """
 
     def __init__(self):
