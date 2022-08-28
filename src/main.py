@@ -30,19 +30,8 @@ if not budget_id:
     print('Budget with the name specified is not found')
     exit(1)
 
-# ----------------------------------------------------------
-#                                                           \
-# mono account 1 -> MonobankStatement -> cancel filter ->    \
-#                                                             \
-# mono account 2 -> MonobankStatement -> cancel filter ->      \
-#                                                               --> transfer filter -> YnabTransaction -> YNAB
-# mono account 3 -> MonobankStatement -> cancel filter ->      /                            
-#                                                             /
-# ...                                                        /
-#                                                           /
-# ----------------------------------------------------------
-
 statement_chain = []
+transfer_filter = TransferFilter()
 
 for account in account_mappings:
     if not account.is_import_enabled:
@@ -57,23 +46,22 @@ for account in account_mappings:
             continue
         print(f'-- Fetched: {len(statements)}')
         statement_chain = itertools.chain(statement_chain, 
-            filter(CancelFilter(statements),
+            map(YnabTransactionConverter(ynab, budget_id),
+            filter(transfer_filter,             # Transfer filter - one per session, used for all accounts
+            filter(CancelFilter(statements),    # Cancel filter - one per account
             map(MonobankStatementParser(account.ynab_account_name, statement_mappings),
-                statements)))
+                statements)))))
     except Exception:
         print(traceback.format_exc())
         continue
-    print('Sleep for 3s to avoid "Too many requests" response from Monobank')
+    # Sleep for 3s to avoid "Too many requests" response from Monobank
     time.sleep(3)
 
-print('Converting bank statements to YNAB transactions')
+print('Processing...')
 
-transactions = list(
-    map(YnabTransactionConverter(ynab, budget_id),
-    filter(TransferFilter(),
-        statement_chain)))
+transactions = list(statement_chain)
 
-print('Sending transactions to YNAB')
+print(f'Sending...')
 
 bulk = ynab.bulk_create_transactions(budget_id, transactions)
 
