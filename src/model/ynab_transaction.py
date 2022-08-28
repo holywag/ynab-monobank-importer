@@ -3,7 +3,7 @@ from datetime import datetime
 YnabTransaction = dict
 
 class YnabTransactionConverter:
-    """Convert MonobankStatement object to the format of YNAB transcaction
+    """Convert MonobankStatement object to the format of YNAB transaction
     """
     def __init__(self, ynab, budget_id):
         self.ynab = ynab

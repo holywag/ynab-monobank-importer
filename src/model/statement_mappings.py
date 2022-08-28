@@ -1,6 +1,6 @@
 from collections import namedtuple
 
-Mapping = namedtuple('Mapping', 'payee category_group category_name transfer_account')
+StatementMapping = namedtuple('StatementMapping', 'payee category_group category_name transfer_account')
 
 class StatementMappings:
     """Helper class that parses statement.json
@@ -18,7 +18,7 @@ class StatementMappings:
         mapping = mcc_group and mcc_group.get(payee) or {}
         default = mcc_group and mcc_group.get('default') or {}
 
-        return Mapping(
+        return StatementMapping(
             payee=StatementMappings.__get_field(mapping, default, 'payee', payee),
             category_group=StatementMappings.__get_field(mapping, default, 'category_group'),
             category_name=StatementMappings.__get_field(mapping, default, 'category_name'),
