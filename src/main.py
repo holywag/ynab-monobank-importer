@@ -7,7 +7,8 @@ from model.statement_mappings import StatementMappings
 from model.monobank_statement import MonobankStatementParser
 from model.ynab_transaction import YnabTransactionConverter
 from filters.cancel_filter import CancelFilter
-import json, argparse, traceback
+from filters.transfer_filter import TransferFilter
+import json, argparse, traceback, itertools, time
 
 parser = argparse.ArgumentParser()
 parser.add_argument('monobank_token', help='Monobank API token')
@@ -41,10 +42,12 @@ if not budget_id:
 #                                                           /
 # ----------------------------------------------------------
 
+statement_chain = []
+
 for account in account_mappings:
     if not account.is_import_enabled:
         continue
-    print(f'Starting import from {account.iban} to {account.ynab_account_name}')
+    print(f'{account.iban} --> {account.ynab_account_name}')
     try:
         bank_account_id = bank.request_account_id(account.iban)
         ynab_account_id = ynab.get_account_id_by_name(budget_id, account.ynab_account_name)
@@ -52,15 +55,27 @@ for account in account_mappings:
         if len(statements) == 0:
             print(f'No statements fetched for the last {account.import_n_days} days. Skipping.')
             continue
-        print(f'Fetched: {len(statements)}')
-        bulk = ynab.bulk_create_transactions(budget_id, 
-            list(
-                map(YnabTransactionConverter(ynab, budget_id, ynab_account_id),
-                filter(CancelFilter(statements),
-                map(MonobankStatementParser(account.ynab_account_name, statement_mappings),
-                    statements)))))
-        print(f'Duplicate: {len(bulk.duplicate_import_ids)}')
-        print(f'Imported: {len(bulk.transaction_ids)}')
+        print(f'-- Fetched: {len(statements)}')
+        statement_chain = itertools.chain(statement_chain, 
+            filter(CancelFilter(statements),
+            map(MonobankStatementParser(account.ynab_account_name, statement_mappings),
+                statements)))
     except Exception:
         print(traceback.format_exc())
         continue
+    print('Sleep for 3s to avoid "Too many requests" response from Monobank')
+    time.sleep(3)
+
+print('Converting bank statements to YNAB transactions')
+
+transactions = list(
+    map(YnabTransactionConverter(ynab, budget_id),
+    filter(TransferFilter(),
+        statement_chain)))
+
+print('Sending transactions to YNAB')
+
+bulk = ynab.bulk_create_transactions(budget_id, transactions)
+
+print(f'-- Duplicate: {len(bulk.duplicate_import_ids)}')
+print(f'-- Imported: {len(bulk.transaction_ids)}')

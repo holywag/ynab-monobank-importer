@@ -5,10 +5,9 @@ YnabTransaction = dict
 class YnabTransactionConverter:
     """Convert MonobankStatement object to the format of YNAB transcaction
     """
-    def __init__(self, ynab, budget_id, ynab_account_id):
+    def __init__(self, ynab, budget_id):
         self.ynab = ynab
         self.budget_id = budget_id
-        self.ynab_account_id = ynab_account_id
 
     def __call__(self, monobank_statement):
         category_id, payee_id = None, None
@@ -19,7 +18,7 @@ class YnabTransactionConverter:
             payee_id = self.ynab.get_transfer_payee_id_by_account_name(
                 self.budget_id, monobank_statement.transfer_account)
         return YnabTransaction({
-            'account_id': self.ynab_account_id,
+            'account_id': self.ynab.get_account_id_by_name(self.budget_id, monobank_statement.ynab_account_name),
             'date': datetime.fromtimestamp(int(monobank_statement.time)).date(),
             'amount': monobank_statement.amount*10,
             'payee_name': monobank_statement.payee,

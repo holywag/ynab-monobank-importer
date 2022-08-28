@@ -26,7 +26,6 @@ class CancelFilter:
             except IndexError:
                 # Ok, caught in case if the corresponding expense statement is not found in the original transaction set
                 pass
-        print(f'Cancelled: {len(self.skip_statements)}')
 
     def __call__(self, statement):
         return not statement.id in self.skip_statements
