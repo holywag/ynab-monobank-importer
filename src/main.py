@@ -39,7 +39,6 @@ for account in account_mappings:
     print(f'{account.iban} --> {account.ynab_account_name}')
     try:
         bank_account_id = bank.request_account_id(account.iban)
-        ynab_account_id = ynab.get_account_id_by_name(budget_id, account.ynab_account_name)
         statements = bank.request_statements_for_last_n_days(bank_account_id, account.import_n_days)
         if len(statements) == 0:
             print(f'No statements fetched for the last {account.import_n_days} days. Skipping.')
