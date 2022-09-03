@@ -8,8 +8,8 @@ class TransferFilter:
         self.transfer_statements = []
 
     def __make_transfer_id(statement, forward):
-        src = statement.ynab_account_name
-        dst = statement.transfer_account
+        src = statement.account.iban
+        dst = statement.transfer_account.iban
         amount = statement.amount
         return forward and f'{src}_{dst}_{amount}' or f'{dst}_{src}_{-amount}'
 

@@ -1,0 +1,35 @@
+[
+    {
+        "enabled": true,
+        "ynab_name": "Mono White",
+        "iban": "UA903220010000026201234567890",
+        "transfer_payee": [
+            "З білої картки",
+            "На білу картку"
+        ]
+    },
+    {
+        "enabled": true,
+        "ynab_name": "Mono Black",
+        "iban": "UA663220010000026201234567890",
+        "transfer_payee": [
+            "Переказ на картку"
+        ]
+    },
+    {
+        "enabled": true,
+        "ynab_name": "Mono FOP",
+        "iban": "UA583220010000026001234567890",
+        "transfer_payee": [
+            "З гривневого рахунка ФОП"
+        ]
+    },
+    {
+        "enabled": false,
+        "ynab_name": "💳 Instalments",
+        "iban": null,
+        "transfer_payee": [
+            "Погашення розстрочки по витраті від \\d\\d\\.\\d\\d\\.\\d\\d\\d\\d"
+        ]
+    }
+]

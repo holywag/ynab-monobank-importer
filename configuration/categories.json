@@ -1,0 +1,89 @@
+[
+    {
+        "ynab_category": {
+            "group": "🌍  Quality of Life",
+            "name": "🍽  Dining out"
+        },
+        "criterias": {
+            "mcc": [ 5812, 5814 ],
+            "payee": [ "Glovo" ]
+        }
+    },
+    {
+        "ynab_category": {
+            "group": "🎩  Maksym",
+            "name": "🍺  Fun"
+        },
+        "criterias": {
+            "payee": [ "Mixologia" ]
+        }
+    },
+    {
+        "ynab_category": {
+            "group": "🍎  Everyday",
+            "name": "🍞  Groceries"
+        },
+        "criterias": { 
+            "mcc": [ 5499, 5411 ]
+        }
+    },
+    {
+        "ynab_category": {
+            "group": "🍎  Everyday",
+            "name": "🚖  Transportation"
+        },
+        "criterias": {
+            "mcc": [ 4111, 4112, 4121 ],
+            "payee": [
+                "LIQPAY\\*ECOS",
+                "LIQPAY\\*E\\-wingsScooters"
+            ]
+        }
+    },
+    {
+        "ynab_category": {
+            "group": "🍎  Everyday",
+            "name": "🚛  Delivery"
+        },
+        "criterias": { 
+            "mcc": [ 4215 ],
+            "payee": [ "Нова пошта" ]
+        }
+    },
+    {
+        "ynab_category": {
+            "group": "🌍  Quality of Life",
+            "name": "🖥  Devices"
+        },
+        "criterias": { 
+            "mcc": [ 4812 ]
+        }
+    },
+    {
+        "ynab_category": {
+            "group": "🍎  Everyday",
+            "name": "📀  Software"
+        },
+        "criterias": { 
+            "mcc": [ 5815 ]
+        }
+    },
+    {
+        "ynab_category": {
+            "group": "🍎  Everyday",
+            "name": "📡  Communication"
+        },
+        "criterias": { 
+            "mcc": [ 4814 ]
+        }
+    },
+    {
+        "ynab_category": {
+            "group": "🎩  Maksym",
+            "name": "💇🏻‍♂️  Beauty"
+        },
+        "criterias": { 
+            "mcc": [ 7230 ]
+        }
+    }
+]

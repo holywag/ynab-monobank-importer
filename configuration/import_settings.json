@@ -1,0 +1,6 @@
+{
+    "monobank_token": "<your_monobank_token>",
+    "ynab_token": "<your_ynab_token>",
+    "budget_name": "<your_ynab_budget_name>",
+    "n_days": 14
+}
