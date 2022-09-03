@@ -1,26 +1,26 @@
 from collections import namedtuple
 
 MonobankStatement = namedtuple('MonobankStatement',
-    'id time amount mcc payee transfer_account category_group category_name ynab_account_name')
+    'account id time amount mcc payee transfer_account category')
 
 class MonobankStatementParser:
     """Convert statement received from Monobank API to MonobankStatement object
+    for further processing.
     """
 
-    def __init__(self, ynab_account_name, statement_mappings):
-        self.ynab_account_name = ynab_account_name
-        self.statement_mappings = statement_mappings
+    def __init__(self, account, configuration):
+        self.account = account
+        self.cfg = configuration
 
     def __call__(self, s):
         mcc = s['mcc']
-        mappings = self.statement_mappings.get(mcc, s['description'])
+        description = s['description']
         return MonobankStatement(
+            account=self.account,
             id=s['id'],
             time=s['time'],
             amount=s['amount'],
             mcc=mcc,
-            payee=mappings.payee,
-            transfer_account=mappings.transfer_account,
-            category_group=mappings.category_group,
-            category_name=mappings.category_name,
-            ynab_account_name=self.ynab_account_name)
+            payee=self.cfg.payee_aliases_by_payee_regex.get(description, description),
+            transfer_account=self.cfg.accounts_by_transfer_payee_regex.get(description),
+            category=self.cfg.categories_by_payee_regex.get(description, self.cfg.categories_by_mcc.get(mcc)))
