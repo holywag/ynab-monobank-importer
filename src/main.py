@@ -8,7 +8,6 @@ from model.ynab_transaction import YnabTransactionConverter
 from filters.cancel_filter import CancelFilter
 from filters.transfer_filter import TransferFilter
 import json, itertools
-from pprint import pprint
 
 print('Initialization')
 
@@ -36,17 +35,17 @@ for account in cfg.accounts:
         continue
     print(f'{account.iban} --> {account.ynab_name}')
     bank_account_id = bank.request_account_id(account.iban)
-    statements = bank.request_statements_for_last_n_days(bank_account_id, cfg.import_settings.n_days)
-    if len(statements) == 0:
+    raw_statements = bank.request_statements_for_last_n_days(bank_account_id, cfg.import_settings.n_days)
+    if len(raw_statements) == 0:
         print(f'No statements fetched for the last {cfg.import_settings.n_days} days. Skipping.')
         continue
-    print(f'-- Fetched: {len(statements)}')
+    print(f'-- Fetched: {len(raw_statements)}')
+    monobank_statements = list(map(MonobankStatementParser(account, cfg), raw_statements))
     statement_chain = itertools.chain(statement_chain, 
         map(YnabTransactionConverter(ynab, budget_id),
-        filter(transfer_filter,             # Transfer filter - one per session, used for all accounts
-        filter(CancelFilter(statements),    # Cancel filter - one per account
-        map(MonobankStatementParser(account, cfg),
-            statements)))))
+        filter(transfer_filter,                     # Transfer filter - one per session, used for all accounts
+        filter(CancelFilter(monobank_statements),   # Cancel filter - one per account
+            monobank_statements))))
 
 print('Processing...')
 

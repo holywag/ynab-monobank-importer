@@ -23,5 +23,5 @@ class YnabTransactionConverter:
             'amount': monobank_statement.amount*10,
             'payee_name': monobank_statement.payee,
             'category_id': category_id,
-            'memo': not category_id and not payee_id and f'mcc: {monobank_statement.mcc}' or None,
+            'memo': not category_id and not payee_id and f'mcc: {monobank_statement.mcc} description: {monobank_statement.description}' or None,
             'payee_id': payee_id })
