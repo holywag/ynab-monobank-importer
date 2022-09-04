@@ -6,7 +6,10 @@
         },
         "criterias": {
             "mcc": [ 5812, 5814 ],
-            "payee": [ "Glovo" ]
+            "payee": [ 
+                "Glovo",
+                "414960\\*\\*\\*\\*4188"
+            ]
         }
     },
     {
@@ -15,7 +18,10 @@
             "name": "🍺  Fun"
         },
         "criterias": {
-            "payee": [ "Mixologia", "Zmist" ]
+            "payee": [
+                "Mixologia",
+                "Zmist"
+            ]
         }
     },
     {
@@ -52,7 +58,9 @@
         },
         "criterias": { 
             "mcc": [ 4215 ],
-            "payee": [ "Нова пошта" ]
+            "payee": [
+                "Нова пошта"
+            ]
         }
     },
     {
@@ -89,16 +97,9 @@
         },
         "criterias": { 
             "mcc": [ 7230 ],
-            "payee": [ "G\\.Bar Iryna" ]
-        }
-    },
-    {
-        "ynab_category": {
-            "group": "☀️  Anna",
-            "name": "💰  Budget"
-        },
-        "criterias": {
-            "payee": [ "Анюта" ]
+            "payee": [
+                "G\\.Bar Iryna"
+            ]
         }
     },
     {
