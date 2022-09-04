@@ -20,24 +20,6 @@
     },
     {
         "ynab_category": {
-            "group": "🎩  Maksym",
-            "name": "🎓  Education"
-        },
-        "criterias": {
-            "mcc": [ 8299 ]
-        }
-    },
-    {
-        "ynab_category": {
-            "group": "🎩  Maksym",
-            "name": "💊  Health"
-        },
-        "criterias": {
-            "mcc": [ 5912 ]
-        }
-    },
-    {
-        "ynab_category": {
             "group": "🍎  Everyday",
             "name": "🍞  Groceries"
         },
@@ -108,6 +90,15 @@
         "criterias": { 
             "mcc": [ 7230 ],
             "payee": [ "G\\.Bar Iryna" ]
+        }
+    },
+    {
+        "ynab_category": {
+            "group": "☀️  Anna",
+            "name": "💰  Budget"
+        },
+        "criterias": {
+            "payee": [ "Анюта" ]
         }
     },
     {
