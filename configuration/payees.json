@@ -1,32 +1,73 @@
 {
+    "Hotel": [
+        "HOTEL KHRESCHATYK"
+    ],
     "Gym": [
         "FOP MALANIUK NAZARII IHOR"
     ],
     "Food Delivery": [
         "Замовлення їжі wayforpay",
         "414960\\*\\*\\*\\*4188",
-        "Glovo"
+        "Glovo",
+        "LА П’ЄЦ"
     ],
     "Cafe": [
         "Rosterija Kavi",
-        "PABPiatnitsia1"
+        "Rosteriyakavi",
+        "PABPiatnitsia1",
+        "Zavertaylo",
+        "COFFEE SHOP 2018",
+        "Cinnabon",
+        "Пузата Хата",
+        "BUCK Coffee Roasters",
+        "Каффа"
     ],
     "Hookah Bar": [
-        "Mixologia"
+        "Mixologia",
+        "Zmist"
     ],
     "Supermarket": [
         "NashIndik",
         "SHOP\\.SILPO\\.UA4",
-        "Сільпо"
+        "Сільпо",
+        "STYL 5 GRYGORIV TM",
+        "FOPSitnikovIgorIgorovi",
+        "My Water Shop"
     ],
     "Scooters": [
-        "Bolt"
+        "Bolt",
+        "ZELECTRA",
+        "LIQPAY\\*E-wingsScooters",
+        "LIQPAY\\*ECOS",
+        "LIQPAY\\*FOP Yagodkina O"
     ],
     "Metro": [
         "Київське метро"
     ],
     "Taxi": [
         "Uklon"
+    ],
+    "Hardware Store": [
+        "FOP SCHERBAK YU.I.",
+        "Appleroomua",
+        "swipeua"
+    ],
+    "Post Services": [
+        "Нова пошта"
+    ],
+    "Beauty Salon": [
+        "Perukarnia Barbershop Gen",
+        "G\\.Bar Iryna",
+        "GBAR"
+    ],
+    "Cellular Provider": [
+        "Vodafone\\n\\d{12}"
+    ],
+    "Courses": [
+        "Оплата освітніх послуг wayforpay"
+    ],
+    "Pharmacy": [
+        "Мед-Сервіс"
     ],
     "Railway Services": [
         "Укрзалізниця"

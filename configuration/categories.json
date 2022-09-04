@@ -15,7 +15,25 @@
             "name": "🍺  Fun"
         },
         "criterias": {
-            "payee": [ "Mixologia" ]
+            "payee": [ "Mixologia", "Zmist" ]
+        }
+    },
+    {
+        "ynab_category": {
+            "group": "🎩  Maksym",
+            "name": "🎓  Education"
+        },
+        "criterias": {
+            "mcc": [ 8299 ]
+        }
+    },
+    {
+        "ynab_category": {
+            "group": "🎩  Maksym",
+            "name": "💊  Health"
+        },
+        "criterias": {
+            "mcc": [ 5912 ]
         }
     },
     {
@@ -24,7 +42,10 @@
             "name": "🍞  Groceries"
         },
         "criterias": { 
-            "mcc": [ 5499, 5411 ]
+            "mcc": [ 5499, 5411 ],
+            "payee": [
+                "FOPSitnikovIgorIgorovi"
+            ]
         }
     },
     {
@@ -36,7 +57,9 @@
             "mcc": [ 4111, 4112, 4121 ],
             "payee": [
                 "LIQPAY\\*ECOS",
-                "LIQPAY\\*E\\-wingsScooters"
+                "LIQPAY\\*E\\-wingsScooters",
+                "ZELECTRA",
+                "LIQPAY\\*FOP Yagodkina O"
             ]
         }
     },
@@ -83,7 +106,17 @@
             "name": "💇🏻‍♂️  Beauty"
         },
         "criterias": { 
-            "mcc": [ 7230 ]
+            "mcc": [ 7230 ],
+            "payee": [ "G\\.Bar Iryna" ]
+        }
+    },
+    {
+        "ynab_category": {
+            "group": "🌍  Quality of Life",
+            "name": "✈️  Vacation"
+        },
+        "criterias": {
+            "mcc": [ 7011 ]
         }
     }
 ]
