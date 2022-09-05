@@ -6,6 +6,11 @@ class YnabAccountNotFound(Exception):
         super().__init__(f'YNAB account with the specified name not found: {account_name}')
         self.account_name = account_name
 
+class YnabBudgetNotFound(Exception):
+    def __init__(self, budget_name):
+        super().__init__(f'YNAB budget with the specified name not found: {budget_name}')
+        self.budget_name = budget_name
+
 class YnabApiWrapper:
     Account = namedtuple('Account', 'id transfer_payee_id')
 
@@ -25,8 +30,14 @@ class YnabApiWrapper:
         if self.__budgets is None:
             budgets_api = ynab.BudgetsApi(self.__client)
             budgets_response = budgets_api.get_budgets()
-            self.__budgets = { b.name: b.id for b in budgets_response.data.budgets }
+            self.__budgets = budgets_response.data.budgets
         return self.__budgets
+
+    def get_budget_by_name(self, name):
+        for b in self.budgets:
+            if b.name == name:
+                return b
+        raise YnabBudgetNotFound(name)
 
     def get_accounts(self, budget_id):
         accounts = self.__accounts.get(budget_id)
@@ -36,9 +47,6 @@ class YnabApiWrapper:
                 for a in accounts_api.get_accounts(budget_id).data.accounts }
             self.__accounts[budget_id] = accounts
         return accounts
-
-    def get_budget_id_by_name(self, name):
-        return self.budgets.get(name)
 
     def get_category_id_by_name(self, budget_id, category_group_name, category_name):
         categories = self.__categories.get(budget_id)
@@ -74,3 +82,26 @@ class YnabApiWrapper:
         transactions_api = ynab.TransactionsApi(self.__client)
         response = transactions_api.get_transactions(budget_id)
         return response.data.transactions
+
+class SingleBudgetYnabApiWrapper:
+    def __init__(self, ynab_api, budget_name):
+        self.ynab_api = ynab_api
+        self.budget = ynab_api.get_budget_by_name(budget_name)
+
+    def get_accounts(self):
+        return self.ynab_api.get_accounts(self.budget.id)
+
+    def get_category_id_by_name(self, category_group_name, category_name):
+        return self.ynab_api.get_category_id_by_name(self.budget.id, category_group_name, category_name)
+
+    def get_account_id_by_name(self, account_name):
+        return self.ynab_api.get_account_id_by_name(self.budget.id, account_name)
+
+    def get_transfer_payee_id_by_account_name(self, account_name):
+        return self.ynab_api.get_transfer_payee_id_by_account_name(self.budget.id, account_name)
+
+    def bulk_create_transactions(self, transactions):
+        return self.ynab_api.bulk_create_transactions(self.budget.id, transactions)
+
+    def get_transactions(self):
+        return self.ynab_api.get_transactions(self.budget.id)
