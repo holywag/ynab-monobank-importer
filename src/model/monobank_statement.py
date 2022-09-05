@@ -8,9 +8,9 @@ class MonobankStatementParser:
     for further processing.
     """
 
-    def __init__(self, account, configuration):
+    def __init__(self, account, field_settings):
         self.account = account
-        self.cfg = configuration
+        self.field_settings = field_settings
 
     def __call__(self, s):
         mcc = s['mcc']
@@ -22,6 +22,6 @@ class MonobankStatementParser:
             amount=s['amount'],
             mcc=mcc,
             description=description,
-            payee=self.cfg.payee_aliases_by_payee_regex.get(description, description),
-            transfer_account=self.cfg.accounts_by_transfer_payee_regex.get(description),
-            category=self.cfg.categories_by_payee_regex.get(description, self.cfg.categories_by_mcc.get(mcc)))
+            payee=self.field_settings.payee_aliases_by_payee_regex.get(description, description),
+            transfer_account=self.field_settings.accounts_by_transfer_payee_regex.get(description),
+            category=self.field_settings.categories_by_payee_regex.get(description, self.field_settings.categories_by_mcc.get(mcc)))

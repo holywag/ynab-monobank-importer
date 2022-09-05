@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from monobank import MonobankApi, ApiClient
-from ynab_api_wrapper import YnabApiWrapper 
+from ynab_api_wrapper import YnabApiWrapper, SingleBudgetYnabApiWrapper
 from model.configuration import Configuration
 from model.monobank_statement import MonobankStatementParser
 from model.ynab_transaction import YnabTransactionConverter
@@ -19,41 +19,35 @@ cfg = Configuration(
 
 print('Starting import')
 
-bank = MonobankApi(ApiClient(cfg.import_settings.monobank_token, 3))
-ynab = YnabApiWrapper(cfg.import_settings.ynab_token)
-
-budget_id = ynab.get_budget_id_by_name(cfg.import_settings.budget_name)
-
-if not budget_id:
-    raise Exception(f'Budget with the name {cfg.import_settings.budget_name} is not found.')
+bank = MonobankApi(ApiClient(cfg.monobank.token, cfg.monobank.n_retries))
+ynab_api = SingleBudgetYnabApiWrapper(YnabApiWrapper(cfg.ynab.token), cfg.ynab.budget_name)
 
 statement_chain = []
-transfer_filter = TransferFilter()
 
 for account in cfg.accounts:
     if not account.enabled:
         continue
     print(f'{account.iban} --> {account.ynab_name}')
     bank_account_id = bank.request_account_id(account.iban)
-    raw_statements = bank.request_statements_for_last_n_days(bank_account_id, cfg.import_settings.n_days)
+    raw_statements = bank.request_statements_for_last_n_days(bank_account_id, cfg.monobank.n_days)
     if len(raw_statements) == 0:
-        print(f'No statements fetched for the last {cfg.import_settings.n_days} days. Skipping.')
+        print(f'No statements fetched for the last {cfg.monobank.n_days} days. Skipping.')
         continue
     print(f'-- Fetched: {len(raw_statements)}')
-    monobank_statements = list(map(MonobankStatementParser(account, cfg), raw_statements))
-    statement_chain = itertools.chain(statement_chain, 
-        map(YnabTransactionConverter(ynab, budget_id),
-        filter(transfer_filter,                     # Transfer filter - one per session, used for all accounts
-        filter(CancelFilter(monobank_statements),   # Cancel filter - one per account
-            monobank_statements))))
+    monobank_statements = list(map(MonobankStatementParser(account, cfg.statement_field_settings), raw_statements))
+    statement_chain = itertools.chain(statement_chain,
+        filter(CancelFilter(monobank_statements), monobank_statements))
 
 print('Processing...')
 
-transactions = list(statement_chain)
+transactions = list(
+    map(YnabTransactionConverter(ynab_api, cfg.ynab.import_id_prefix),
+    filter(TransferFilter(),
+        statement_chain)))
 
 print(f'Sending...')
 
-bulk = ynab.bulk_create_transactions(budget_id, transactions)
+bulk = ynab_api.bulk_create_transactions(transactions)
 
 print(f'-- Duplicate: {len(bulk.duplicate_import_ids)}')
 print(f'-- Imported: {len(bulk.transaction_ids)}')

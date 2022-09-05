@@ -1,6 +1,12 @@
 {
-    "monobank_token": "<your_monobank_token>",
-    "ynab_token": "<your_ynab_token>",
-    "budget_name": "<your_ynab_budget_name>",
-    "n_days": 14
+    "monobank": {
+        "token": "<your_monobank_token>",
+        "n_days": 14,
+        "n_retries": 5
+    },
+    "ynab": {
+        "token": "<your_ynab_token>",
+        "budget_name": "<your_ynab_budget_name>",
+        "import_id_prefix": "5_"
+    }
 }
