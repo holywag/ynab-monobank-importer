@@ -8,7 +8,9 @@
             "mcc": [ 5812, 5814 ],
             "payee": [ 
                 "Glovo",
-                "414960\\*\\*\\*\\*4188"
+                "414960\\*\\*\\*\\*4188",
+                "516874\\*\\*\\*\\*8722",
+                "Rosteria Sergii"
             ]
         }
     },
@@ -65,6 +67,42 @@
     },
     {
         "ynab_category": {
+            "group": "🏠  Sweet home",
+            "name": "💡  Electric"
+        },
+        "criterias": {
+            "payee": [
+                "Електроенергія"
+            ]
+        }
+    },
+    {
+        "ynab_category": {
+            "group": "🏠  Sweet home",
+            "name": "💧  Water"
+        },
+        "criterias": {
+            "payee": [
+                "Холодна вода",
+                "Холодна вода (водовідведення)",
+                "Iнше"
+            ]
+        }
+    },
+    {
+        "ynab_category": {
+            "group": "🏠  Sweet home",
+            "name": "🔥  Natural Gas"
+        },
+        "criterias": {
+            "payee": [
+                "Газ",
+                "Газ (доставлення)"
+            ]
+        }
+    },
+    {
+        "ynab_category": {
             "group": "🌍  Quality of Life",
             "name": "🖥  Devices"
         },
@@ -87,7 +125,10 @@
             "name": "📡  Communication"
         },
         "criterias": { 
-            "mcc": [ 4814 ]
+            "mcc": [ 4814 ],
+            "payee": [
+                "Інтернет і ТБ"
+            ]
         }
     },
     {

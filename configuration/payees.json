@@ -8,12 +8,14 @@
     "Food Delivery": [
         "Замовлення їжі wayforpay",
         "414960\\*\\*\\*\\*4188",
+        "516874\\*\\*\\*\\*8722",
         "Glovo",
         "LА П’ЄЦ"
     ],
     "Cafe": [
         "Rosterija Kavi",
         "Rosteriyakavi",
+        "Rosteria Sergii",
         "PABPiatnitsia1",
         "Zavertaylo",
         "COFFEE SHOP 2018",
@@ -53,6 +55,14 @@
         "FOP SCHERBAK YU.I.",
         "Appleroomua",
         "swipeua"
+    ],
+    "Utilities": [
+        "Холодна вода",
+        "Холодна вода (водовідведення)",
+        "Iнше",
+        "Електроенергія",
+        "Газ",
+        "Газ (доставлення)"
     ],
     "Post Services": [
         "Нова пошта"

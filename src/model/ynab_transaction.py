@@ -5,9 +5,8 @@ YnabTransaction = dict
 class YnabTransactionConverter:
     """Convert MonobankStatement object to the format of YNAB transaction
     """
-    def __init__(self, ynab_api, import_id_prefix):
+    def __init__(self, ynab_api):
         self.ynab_api = ynab_api
-        self.import_id_prefix = import_id_prefix
 
     def __call__(self, monobank_statement):
         category_id, payee_id = None, None
@@ -24,5 +23,4 @@ class YnabTransactionConverter:
             'payee_name': monobank_statement.payee,
             'payee_id': payee_id,
             'category_id': category_id,
-            'memo': not category_id and not payee_id and f'mcc: {monobank_statement.mcc} description: {monobank_statement.description}' or None,
-            'import_id': f'{self.import_id_prefix}{monobank_statement.id}' })
+            'memo': not category_id and not payee_id and f'mcc: {monobank_statement.mcc} description: {monobank_statement.description}' or None })

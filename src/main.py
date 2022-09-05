@@ -41,7 +41,7 @@ for account in cfg.accounts:
 print('Processing...')
 
 transactions = list(
-    map(YnabTransactionConverter(ynab_api, cfg.ynab.import_id_prefix),
+    map(YnabTransactionConverter(ynab_api),
     filter(TransferFilter(),
         statement_chain)))
 

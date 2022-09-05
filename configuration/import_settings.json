@@ -6,7 +6,6 @@
     },
     "ynab": {
         "token": "<your_ynab_token>",
-        "budget_name": "<your_ynab_budget_name>",
-        "import_id_prefix": "5_"
+        "budget_name": "<your_ynab_budget_name>"
     }
 }
