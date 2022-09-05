@@ -2,7 +2,7 @@ from collections import namedtuple
 import re
 
 MonobankImportSettings = namedtuple('MonobankImportSettings', 'token n_days n_retries')
-YnabImportSettings = namedtuple('YnabImportSettings', 'token budget_name import_id_prefix')
+YnabImportSettings = namedtuple('YnabImportSettings', 'token budget_name')
 Account = namedtuple('Account', 'enabled ynab_name iban transfer_payee')
 StatementFieldSettings = namedtuple('StatementFieldSettings', 'accounts_by_transfer_payee_regex categories_by_mcc categories_by_payee_regex payee_aliases_by_payee_regex')
 YnabCategory = namedtuple('YnabCategory', 'group name')
