@@ -19,7 +19,7 @@ cfg = Configuration(
 
 print('Starting import')
 
-bank_api = MonobankApi(ApiClient(cfg.monobank.token, cfg.monobank.n_retries))
+bank_api = MonobankApi(ApiClient(cfg.bank.token, cfg.bank.n_retries))
 ynab_api = SingleBudgetYnabApiWrapper(YnabApiWrapper(cfg.ynab.token), cfg.ynab.budget_name)
 
 statement_chain = []
@@ -29,9 +29,10 @@ for account in cfg.accounts:
         continue
     print(f'{account.iban} --> {account.ynab_name}')
     bank_account_id = bank_api.request_account_id(account.iban)
-    raw_statements = bank_api.request_statements_for_last_n_days(bank_account_id, cfg.monobank.n_days)
+    raw_statements = bank_api.request_statements_for_time_range(
+        bank_account_id, cfg.bank.time_range.start, cfg.bank.time_range.end)
     if len(raw_statements) == 0:
-        print(f'No statements fetched for the last {cfg.monobank.n_days} days. Skipping.')
+        print(f'No statements fetched for the given period. Skipping.')
         continue
     print(f'-- Fetched: {len(raw_statements)}')
     bank_statements = list(map(MonobankStatementParser(account, cfg.statement_field_settings), raw_statements))
