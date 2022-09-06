@@ -7,5 +7,7 @@
     "ynab": {
         "token": "<your_ynab_token>",
         "budget_name": "<your_ynab_budget_name>"
-    }
+    },
+    "remove_cancelled_statements": true,
+    "merge_transfer_statements": true
 }

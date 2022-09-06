@@ -16,6 +16,8 @@ class Configuration:
     def __init__(self, import_settings_json, accounts_json, categories_json, payees_json):
         self.monobank = MonobankImportSettings(**import_settings_json['monobank'])
         self.ynab = YnabImportSettings(**import_settings_json['ynab'])
+        self.remove_cancelled_statements = import_settings_json['remove_cancelled_statements']
+        self.merge_transfer_statements = import_settings_json['merge_transfer_statements']
         self.accounts = [Account(**a) for a in accounts_json]
         self.statement_field_settings = StatementFieldSettings(
             accounts_by_transfer_payee_regex=

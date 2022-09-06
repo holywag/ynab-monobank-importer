@@ -1,11 +1,15 @@
 from collections import namedtuple
 
-MonobankStatement = namedtuple('MonobankStatement',
+BankStatement = namedtuple('BankStatement',
     'account id time amount mcc payee description transfer_account category')
 
 class MonobankStatementParser:
-    """Convert statement received from Monobank API to MonobankStatement object
+    """Convert statement received from Monobank API to BankStatement object
     for further processing.
+    Each statement is categorised using field_settings in the following order:
+    - by transfer payee
+    - by payee name mapping
+    - by mcc mapping
     """
 
     def __init__(self, account, field_settings):
@@ -15,7 +19,7 @@ class MonobankStatementParser:
     def __call__(self, s):
         mcc = s['mcc']
         description = s['description']
-        return MonobankStatement(
+        return BankStatement(
             account=self.account,
             id=s['id'],
             time=s['time'],
