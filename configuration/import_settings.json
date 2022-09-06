@@ -1,8 +1,11 @@
 {
     "monobank": {
         "token": "<your_monobank_token>",
-        "n_days": 14,
-        "n_retries": 5
+        "n_retries": 5,
+        "time_range": {
+            "start": "2022-08-22 00:00:00+03:00",
+            "end": null
+        }
     },
     "ynab": {
         "token": "<your_ynab_token>",
