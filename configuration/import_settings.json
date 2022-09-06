@@ -1,5 +1,5 @@
 {
-    "monobank": {
+    "bank": {
         "token": "<your_monobank_token>",
         "n_retries": 5,
         "time_range": {
