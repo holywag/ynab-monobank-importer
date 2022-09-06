@@ -19,7 +19,7 @@ cfg = Configuration(
 
 print('Starting import')
 
-bank = MonobankApi(ApiClient(cfg.monobank.token, cfg.monobank.n_retries))
+bank_api = MonobankApi(ApiClient(cfg.monobank.token, cfg.monobank.n_retries))
 ynab_api = SingleBudgetYnabApiWrapper(YnabApiWrapper(cfg.ynab.token), cfg.ynab.budget_name)
 
 statement_chain = []
@@ -28,22 +28,23 @@ for account in cfg.accounts:
     if not account.enabled:
         continue
     print(f'{account.iban} --> {account.ynab_name}')
-    bank_account_id = bank.request_account_id(account.iban)
-    raw_statements = bank.request_statements_for_last_n_days(bank_account_id, cfg.monobank.n_days)
+    bank_account_id = bank_api.request_account_id(account.iban)
+    raw_statements = bank_api.request_statements_for_last_n_days(bank_account_id, cfg.monobank.n_days)
     if len(raw_statements) == 0:
         print(f'No statements fetched for the last {cfg.monobank.n_days} days. Skipping.')
         continue
     print(f'-- Fetched: {len(raw_statements)}')
-    monobank_statements = list(map(MonobankStatementParser(account, cfg.statement_field_settings), raw_statements))
-    statement_chain = itertools.chain(statement_chain,
-        filter(CancelFilter(monobank_statements), monobank_statements))
+    bank_statements = list(map(MonobankStatementParser(account, cfg.statement_field_settings), raw_statements))
+    if cfg.remove_cancelled_statements:
+        bank_statements = filter(CancelFilter(bank_statements), bank_statements)
+    statement_chain = itertools.chain(statement_chain, bank_statements)
 
 print('Processing...')
 
-transactions = list(
-    map(YnabTransactionConverter(ynab_api),
-    filter(TransferFilter(),
-        statement_chain)))
+if cfg.merge_transfer_statements:
+    statement_chain = filter(TransferFilter(), statement_chain)
+
+transactions = list(map(YnabTransactionConverter(ynab_api), statement_chain))
 
 print(f'Sending...')
 
