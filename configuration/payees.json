@@ -73,7 +73,8 @@
         "GBAR"
     ],
     "Cellular Provider": [
-        "Vodafone\\n\\d{12}"
+        "Vodafone\\n\\d{12}",
+        "Інтернет і ТБ"
     ],
     "Courses": [
         "Оплата освітніх послуг wayforpay"
