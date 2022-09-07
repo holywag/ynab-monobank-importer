@@ -24,7 +24,9 @@
         "BUCK Coffee Roasters",
         "Каффа",
         "KapheSHampanerija1",
-        "Kavjarnjanatrusha"
+        "Kavjarnjanatrusha",
+        "Urban Space 100",
+        "Moun Coffee"
     ],
     "Hookah Bar": [
         "Mixologia",
@@ -68,8 +70,10 @@
     "Post Services": [
         "Нова пошта"
     ],
+    "Barber": [
+        "Perukarnia Barbershop Gen"
+    ],
     "Beauty Salon": [
-        "Perukarnia Barbershop Gen",
         "G\\.Bar Iryna",
         "GBAR"
     ],
@@ -81,7 +85,9 @@
         "Оплата освітніх послуг wayforpay"
     ],
     "Pharmacy": [
-        "Мед-Сервіс"
+        "Мед-Сервіс",
+        "Apteka zdorova rodyna",
+        "Apteka 78"
     ],
     "Railway Services": [
         "Укрзалізниця"
