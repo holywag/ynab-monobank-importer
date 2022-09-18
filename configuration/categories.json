@@ -5,7 +5,7 @@
             "name": "🍽  Dining out"
         },
         "criterias": {
-            "mcc": [ 5812, 5814 ],
+            "mcc": [ 5811, 5812, 5814 ],
             "payee": [ 
                 "Glovo",
                 "414960\\*\\*\\*\\*4188",
@@ -49,7 +49,8 @@
                 "LIQPAY\\*ECOS",
                 "LIQPAY\\*E\\-wingsScooters",
                 "ZELECTRA",
-                "LIQPAY\\*FOP Yagodkina O"
+                "LIQPAY\\*FOP Yagodkina O",
+                "FDY\\*Computer_SSL"
             ]
         }
     },

@@ -1,6 +1,7 @@
 {
     "Hotel": [
-        "HOTEL KHRESCHATYK"
+        "HOTEL KHRESCHATYK",
+        "HOTEL IMPRESSA"
     ],
     "Gym": [
         "FOP MALANIUK NAZARII IHOR"
@@ -10,11 +11,15 @@
         "414960\\*\\*\\*\\*4188",
         "516874\\*\\*\\*\\*8722",
         "Glovo",
-        "LА П’ЄЦ"
+        "LА П’ЄЦ",
+        "545708\\*\\*\\*\\*4860",
+        "545708\\*\\*\\*\\*6507",
+        "FDY\\*chubibum"
     ],
     "Cafe": [
         "Rosterija Kavi",
         "Rosteriyakavi",
+        "Ростерія Кави",
         "Rosteria Sergii",
         "PABPiatnitsia1",
         "Zavertaylo",
@@ -26,7 +31,10 @@
         "KapheSHampanerija1",
         "Kavjarnjanatrusha",
         "Urban Space 100",
-        "Moun Coffee"
+        "Moun Coffee",
+        "WFP\\.EDA",
+        "MAMA-MANANA",
+        "CoffeeDOOR brew bar"
     ],
     "Hookah Bar": [
         "Mixologia",
@@ -39,14 +47,25 @@
         "STYL 5 GRYGORIV TM",
         "FOPSitnikovIgorIgorovi",
         "My Water Shop",
-        "METRO"
+        "METRO",
+        "LIQPAY\\*TOV ZAKAZ\\.YuA"
+    ],
+    "Household Shop": [
+        "Magazin7903",
+        "LIQPAY\\*Kitchen-Profi",
+        "VsiSvoYi",
+        "USUPSO"
+    ],
+    "Street Food": [
+        "DonadsClub"
     ],
     "Scooters": [
-        "Bolt",
+        "(?:Скасування\\. )?Bolt",
         "ZELECTRA",
         "LIQPAY\\*E-wingsScooters",
         "LIQPAY\\*ECOS",
-        "LIQPAY\\*FOP Yagodkina O"
+        "LIQPAY\\*FOP Yagodkina O",
+        "FDY\\*Computer_SSL"
     ],
     "Metro": [
         "Київське метро"
@@ -79,17 +98,31 @@
     ],
     "Cellular Provider": [
         "Vodafone\\n\\d{12}",
-        "Інтернет і ТБ"
+        "Інтернет і ТБ",
+        "Київстар\\n\\+\\d{12}"
     ],
     "Courses": [
         "Оплата освітніх послуг wayforpay"
     ],
+    "Clinic": [
+        "Klinika Andriya Lukashuka"
+    ],
     "Pharmacy": [
         "Мед-Сервіс",
         "Apteka zdorova rodyna",
-        "Apteka 78"
+        "Apteka 78",
+        "ANC_VOLYN_13",
+        "APTEKAR",
+        "Перша соціальна аптека",
+        "Мережа аптек D\\.S\\."
     ],
     "Railway Services": [
         "Укрзалізниця"
+    ],
+    "Clothing Store": [
+        "Dodo Socks"
+    ],
+    "Cleaning Services": [
+        "414962\\*\\*\\*\\*7633"
     ]
 }
