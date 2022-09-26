@@ -1,6 +1,15 @@
 [
     {
         "ynab_category": {
+            "group": "🍎  Everyday",
+            "name": "🐖  Pets"
+        },
+        "criterias": {
+            "payee": [ "Ajbolit" ]
+        }
+    },
+    {
+        "ynab_category": {
             "group": "🌍  Quality of Life",
             "name": "🍽  Dining out"
         },

@@ -1,4 +1,7 @@
 {
+    "Vet Clinic": [
+        "Ajbolit"
+    ],
     "Hotel": [
         "HOTEL KHRESCHATYK",
         "HOTEL IMPRESSA"
@@ -34,7 +37,9 @@
         "Moun Coffee",
         "WFP\\.EDA",
         "MAMA-MANANA",
-        "CoffeeDOOR brew bar"
+        "CoffeeDOOR brew bar",
+        "Кавоварка",
+        "Vafel"
     ],
     "Hookah Bar": [
         "Mixologia",
@@ -48,7 +53,9 @@
         "FOPSitnikovIgorIgorovi",
         "My Water Shop",
         "METRO",
-        "LIQPAY\\*TOV ZAKAZ\\.YuA"
+        "LIQPAY\\*TOV ZAKAZ\\.YuA",
+        "MasloTOM",
+        "ФК ЕВО"
     ],
     "Household Shop": [
         "Magazin7903",
@@ -87,7 +94,8 @@
         "Газ (доставлення)"
     ],
     "Post Services": [
-        "Нова пошта"
+        "Нова пошта",
+        "Novapay"
     ],
     "Barber": [
         "Perukarnia Barbershop Gen"
@@ -99,7 +107,8 @@
     "Cellular Provider": [
         "Vodafone\\n\\d{12}",
         "Інтернет і ТБ",
-        "Київстар\\n\\+\\d{12}"
+        "Київстар(\\n\\+\\d{12})?",
+        "iBOX"
     ],
     "Courses": [
         "Оплата освітніх послуг wayforpay"
