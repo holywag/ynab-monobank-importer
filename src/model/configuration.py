@@ -16,8 +16,8 @@ class RegexList(list):
         return next((r.value for r in self if r.regex_key.match(key)), default)
 
 class Configuration:
-    def __init__(self, import_settings_json, accounts_json, categories_json, payees_json):
-        self.bank = Configuration.__bank_settings(import_settings_json['bank'])
+    def __init__(self, import_settings_json, accounts_json, categories_json, payees_json, timestamp_json=None):
+        self.bank = Configuration.__bank_settings(import_settings_json['bank'], timestamp_json)
         self.ynab = YnabImportSettings(**import_settings_json['ynab'])
         self.remove_cancelled_statements = import_settings_json['remove_cancelled_statements']
         self.merge_transfer_statements = import_settings_json['merge_transfer_statements']
@@ -33,13 +33,19 @@ class Configuration:
             categories_by_mcc=
                 { mcc: YnabCategory(**c['ynab_category']) for c in categories_json for mcc in c['criterias'].get('mcc', []) })
 
-    def __bank_settings(bank_settings_json):
+    @property
+    def timestamp(self):
+        return {'last_import': datetime.now(tz=self.bank.time_range.start.tzinfo).isoformat()}
+
+    def __bank_settings(bank_settings_json, timestamp_json=None):
+        last_import = timestamp_json and datetime.fromisoformat(timestamp_json['last_import'])
         time_range_json = bank_settings_json['time_range']
-        datetime_start = datetime.fromisoformat(time_range_json['start'])
-        time_range_end = time_range_json.get('end')
+        time_range_start = datetime.fromisoformat(time_range_json['start'])
+        if last_import and last_import > time_range_start:
+            time_range_start = last_import
         bank_settings = bank_settings_json | { 'time_range' : TimeRangeSettings(
-            start=datetime_start,
-            end=time_range_end and datetime.fromisoformat(time_range_end) or datetime.now(tz=datetime_start.tzinfo)) }
+            start=time_range_start,
+            end=time_range_json['end'] and datetime.fromisoformat(time_range_json['end']) or datetime.now(tz=time_range_start.tzinfo)) }
         return BankImportSettings(**bank_settings)
 
     def __re_item(regex_list, value):

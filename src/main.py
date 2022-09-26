@@ -7,7 +7,9 @@ from model.monobank_statement import MonobankStatementParser
 from model.ynab_transaction import YnabTransactionConverter
 from filters.cancel_filter import CancelFilter
 from filters.transfer_filter import TransferFilter
-import json, itertools
+import json, itertools, os
+
+TIMESTAMP_FILE = './.timestamp'
 
 print('Initialization')
 
@@ -15,7 +17,8 @@ cfg = Configuration(
     json.load(open('configuration/import_settings.json')),
     json.load(open('configuration/accounts.json')),
     json.load(open('configuration/categories.json')),
-    json.load(open('configuration/payees.json')))
+    json.load(open('configuration/payees.json')),
+    os.path.isfile(TIMESTAMP_FILE) and json.load(open(TIMESTAMP_FILE)))
 
 print('Starting import')
 
@@ -53,3 +56,5 @@ bulk = ynab_api.bulk_create_transactions(transactions)
 
 print(f'-- Duplicate: {len(bulk.duplicate_import_ids)}')
 print(f'-- Imported: {len(bulk.transaction_ids)}')
+
+json.dump(cfg.timestamp, open(TIMESTAMP_FILE, 'w'))
