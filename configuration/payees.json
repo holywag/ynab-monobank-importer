@@ -1,9 +1,16 @@
 {
+    "Amazon": [
+        "AMZNMktplace"
+    ],
     "Opticshop": [
         "Alensa"
     ],
     "Vet Clinic": [
         "Ajbolit"
+    ],
+    "Pet Shop": [
+        "ZoomarketZOOPROFI",
+        "BRIDER"
     ],
     "Hotel": [
         "HOTEL KHRESCHATYK",
@@ -60,7 +67,8 @@
         "LIQPAY\\*TOV ZAKAZ\\.YuA",
         "MasloTOM",
         "ФК ЕВО",
-        "zakaz\\.ua"
+        "zakaz\\.ua",
+        "АТБ"
     ],
     "Household Shop": [
         "Magazin7903",
@@ -69,7 +77,8 @@
         "USUPSO"
     ],
     "Street Food": [
-        "DonadsClub"
+        "DonadsClub",
+        "MS Doner"
     ],
     "Scooters": [
         "(?:Скасування\\. )?Bolt",
@@ -128,7 +137,8 @@
         "ANC_VOLYN_13",
         "APTEKAR",
         "Перша соціальна аптека",
-        "Мережа аптек D\\.S\\."
+        "Мережа аптек D\\.S\\.",
+        "Аптека АНЦ"
     ],
     "Railway Services": [
         "Укрзалізниця"
