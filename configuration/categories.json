@@ -5,7 +5,10 @@
             "name": "🐖  Pets"
         },
         "criterias": {
-            "mcc": [ 5995 ]
+            "mcc": [ 5995 ],
+            "payee": [
+                "Ajbolit"
+            ]
         }
     },
     {
