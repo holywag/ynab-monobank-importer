@@ -13,6 +13,15 @@
     },
     {
         "ynab_category": {
+            "group": "🏢  Legal",
+            "name": "⚖️  Lawyer"
+        },
+        "criterias": {
+            "mcc": [ 7277 ]
+        }
+    },
+    {
+        "ynab_category": {
             "group": "🌍  Quality of Life",
             "name": "🍽  Dining out"
         },
@@ -22,7 +31,8 @@
                 "Glovo",
                 "414960\\*\\*\\*\\*4188",
                 "516874\\*\\*\\*\\*8722",
-                "Rosteria Sergii"
+                "Rosteria Sergii",
+                "Романія Ц\\."
             ]
         }
     },
@@ -34,7 +44,8 @@
         "criterias": {
             "payee": [
                 "Mixologia",
-                "Zmist"
+                "Zmist",
+                "545708\\*\\*\\*\\*5670"
             ]
         }
     },
@@ -74,8 +85,18 @@
         "criterias": { 
             "mcc": [ 4215 ],
             "payee": [
-                "Нова пошта"
+                "Нова пошта",
+                "Novapay"
             ]
+        }
+    },
+    {
+        "ynab_category": {
+            "group": "🍎  Everyday",
+            "name": "🪣  Households"
+        },
+        "criterias": { 
+            "mcc": [ 5943 ]
         }
     },
     {
@@ -111,6 +132,17 @@
             "payee": [
                 "Газ",
                 "Газ (доставлення)"
+            ]
+        }
+    },
+    {
+        "ynab_category": {
+            "group": "🏠  Sweet home",
+            "name": "⚒️  Services"
+        },
+        "criterias": {
+            "payee": [
+                "Домофон"
             ]
         }
     },

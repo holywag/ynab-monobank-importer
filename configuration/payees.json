@@ -1,4 +1,7 @@
 {
+    "Bank": [
+        "УБКИ"
+    ],
     "Amazon": [
         "AMZNMktplace"
     ],
@@ -29,7 +32,9 @@
         "545708\\*\\*\\*\\*4860",
         "545708\\*\\*\\*\\*6507",
         "FDY\\*chubibum",
-        "beerclub10\\.if\\.ua\\.1"
+        "beerclub10\\.if\\.ua\\.1",
+        "WFPFASTFOOD1",
+        "Романія Ц\\."
     ],
     "Cafe": [
         "Rosterija Kavi",
@@ -51,11 +56,14 @@
         "MAMA-MANANA",
         "CoffeeDOOR brew bar",
         "Кавоварка",
-        "Vafel"
+        "Vafel",
+        "InshiPark",
+        "KapheSHampanerija"
     ],
     "Hookah Bar": [
         "Mixologia",
-        "Zmist"
+        "Zmist",
+        "545708\\*\\*\\*\\*5670"
     ],
     "Supermarket": [
         "NashIndik",
@@ -75,7 +83,8 @@
         "Magazin7903",
         "LIQPAY\\*Kitchen-Profi",
         "VsiSvoYi",
-        "USUPSO"
+        "USUPSO",
+        "MARKER"
     ],
     "Street Food": [
         "DonadsClub",
@@ -107,7 +116,8 @@
         "Iнше",
         "Електроенергія",
         "Газ",
-        "Газ (доставлення)"
+        "Газ (доставлення)",
+        "Домофон"
     ],
     "Post Services": [
         "Нова пошта",
