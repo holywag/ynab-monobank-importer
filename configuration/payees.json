@@ -3,7 +3,8 @@
         "УБКИ"
     ],
     "Amazon": [
-        "AMZNMktplace"
+        "AMZNMktplace",
+        "AMZNMKTPLACE AMAZON\\.CO\\,1 PRINCIPAL PLC, WORSHIP,AMAZON\\.CO\\.UK,GB"
     ],
     "Opticshop": [
         "Alensa"
@@ -21,7 +22,8 @@
         "HOTEL IMPRESSA"
     ],
     "Gym": [
-        "FOP MALANIUK NAZARII IHOR"
+        "FOP MALANIUK NAZARII (?:IHOR|I)",
+        "PHitnestsentrInterfit"
     ],
     "Food Delivery": [
         "Замовлення їжі wayforpay",
@@ -58,12 +60,15 @@
         "Кавоварка",
         "Vafel",
         "InshiPark",
-        "KapheSHampanerija"
+        "KapheSHampanerija",
+        "TerasaBochka"
     ],
     "Hookah Bar": [
         "Mixologia",
         "Zmist",
-        "545708\\*\\*\\*\\*5670"
+        "545708\\*\\*\\*\\*5670",
+        "414962\\*\\*\\*\\*9082",
+        "Богдана Г\\."
     ],
     "Supermarket": [
         "NashIndik",
@@ -84,7 +89,9 @@
         "LIQPAY\\*Kitchen-Profi",
         "VsiSvoYi",
         "USUPSO",
-        "MARKER"
+        "MARKER",
+        "STYL(?: 1|3 YURKIV HR)?",
+        "Епіцентр"
     ],
     "Street Food": [
         "DonadsClub",
