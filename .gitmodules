@@ -3,4 +3,4 @@
 	url = https://github.com/holywag/mono-api.git
 [submodule "api/ynab-python"]
 	path = api/ynab-python
-	url = git@github.com:holywag/ynab-python.git
+	url = https://github.com/holywag/ynab-python.git
