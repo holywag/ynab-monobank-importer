@@ -12,8 +12,8 @@ YnabCategory = namedtuple('YnabCategory', 'group name')
 RegexItem = namedtuple('RegexItem', 'regex_key value')
 
 class RegexList(list):
-    def get(self, key, default=None):
-        return next((r.value for r in self if r.regex_key.match(key)), default)
+    def get(self, key, default=None, condition=lambda _: True):
+        return next((r.value for r in self if r.regex_key.match(key) and condition(r.value)), default)
 
 class Configuration:
     def __init__(self, import_settings_json, accounts_json, categories_json, payees_json, timestamp_json=None):

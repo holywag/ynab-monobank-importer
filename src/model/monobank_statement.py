@@ -27,5 +27,5 @@ class MonobankStatementParser:
             mcc=mcc,
             description=description,
             payee=self.field_settings.payee_aliases_by_payee_regex.get(description, description),
-            transfer_account=self.field_settings.accounts_by_transfer_payee_regex.get(description),
+            transfer_account=self.field_settings.accounts_by_transfer_payee_regex.get(description, condition=lambda a: a.iban != self.account.iban),
             category=self.field_settings.categories_by_payee_regex.get(description, self.field_settings.categories_by_mcc.get(mcc)))
