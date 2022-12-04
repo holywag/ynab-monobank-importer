@@ -12,5 +12,6 @@
         "budget_name": "<your_ynab_budget_name>"
     },
     "remove_cancelled_statements": true,
-    "merge_transfer_statements": true
+    "merge_transfer_statements": true,
+    "remember_last_import_timestamp": true
 }
