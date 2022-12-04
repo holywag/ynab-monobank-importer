@@ -106,7 +106,7 @@
             "name": "🪑  Homeware"
         },
         "criterias": {
-            "mcc": [ 5211 ],
+            "mcc": [ 5200, 5211 ],
             "payee": [
                 "STYL(?: 1|3 YURKIV HR)?"
             ]

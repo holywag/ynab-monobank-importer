@@ -1,4 +1,7 @@
 {
+    "Book Store": [
+        "Yakaboo"
+    ],
     "Bank": [
         "УБКИ"
     ],
@@ -94,7 +97,8 @@
         "MARKER",
         "STYL(?: 1|3 YURKIV HR)?",
         "Епіцентр",
-        "Ars"
+        "Ars",
+        "JYSK"
     ],
     "Street Food": [
         "DonadsClub",
@@ -142,9 +146,11 @@
     ],
     "Cellular Provider": [
         "Vodafone\\n\\d{12}",
-        "Інтернет і ТБ",
         "Київстар(\\n\\+\\d{12})?",
         "iBOX"
+    ],
+    "Internet Provider": [
+        "Інтернет і ТБ"
     ],
     "Courses": [
         "Оплата освітніх послуг wayforpay"
