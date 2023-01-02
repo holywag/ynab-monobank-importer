@@ -1,4 +1,7 @@
 {
+    "YNAB": [
+        "YouNeedABudget com"
+    ],
     "Book Store": [
         "Yakaboo"
     ],
@@ -40,7 +43,9 @@
         "beerclub10\\.if\\.ua\\.1",
         "WFPFASTFOOD1",
         "Романія Ц\\.",
-        "chubibum"
+        "chubibum",
+        "CHubiBumdostavkapitsi",
+        "FOP Mironova TA"
     ],
     "Cafe": [
         "Rosterija Kavi",
@@ -67,7 +72,9 @@
         "KapheSHampanerija",
         "TerasaBochka",
         "414960\\*\\*\\*\\*4532",
-        "FABBRICA"
+        "FABBRICA",
+        "Italiiets iz Beiruta",
+        "Fishki Coffee"
     ],
     "Hookah Bar": [
         "Mixologia",
@@ -88,7 +95,9 @@
         "MasloTOM",
         "ФК ЕВО",
         "zakaz\\.ua",
-        "АТБ"
+        "АТБ",
+        "PekarnyanaStanislavski",
+        "MAGAZYN 1212"
     ],
     "Household Shop": [
         "Magazin7903",
@@ -139,7 +148,8 @@
         "Novapay"
     ],
     "Barber": [
-        "Perukarnia Barbershop Gen"
+        "Perukarnia Barbershop(?: Gen)",
+        "ALS Barbershop"
     ],
     "Beauty Salon": [
         "G\\.Bar Iryna",
@@ -157,7 +167,10 @@
         "Оплата освітніх послуг wayforpay"
     ],
     "Clinic": [
-        "Klinika Andriya Lukashuka"
+        "Klinika Andriya Lukash(?:uka)"
+    ],
+    "Laboratory": [
+        "Synevo"
     ],
     "Pharmacy": [
         "Мед-Сервіс",
@@ -167,13 +180,17 @@
         "APTEKAR",
         "Перша соціальна аптека",
         "Мережа аптек D\\.S\\.",
-        "Аптека АНЦ"
+        "Аптека АНЦ",
+        "Аптека Копійка"
     ],
     "Railway Services": [
         "Укрзалізниця"
     ],
     "Clothing Store": [
-        "Dodo Socks"
+        "Dodo Socks",
+        "Levi’s",
+        "FOPKostenkoKolambiy",
+        "S\\.UA\\.18\\.03"
     ],
     "Cleaning Services": [
         "414962\\*\\*\\*\\*7633"
