@@ -17,10 +17,12 @@ class RegexList(list):
 
 class Configuration:
     def __init__(self, import_settings_json, accounts_json, categories_json, payees_json, timestamp_json=None):
-        self.bank = Configuration.__bank_settings(import_settings_json['bank'], timestamp_json)
-        self.ynab = YnabImportSettings(**import_settings_json['ynab'])
         self.remove_cancelled_statements = import_settings_json['remove_cancelled_statements']
         self.merge_transfer_statements = import_settings_json['merge_transfer_statements']
+        self.remember_last_import_timestamp = import_settings_json['remember_last_import_timestamp']
+        self.bank = Configuration.__bank_settings(
+            import_settings_json['bank'], self.remember_last_import_timestamp and timestamp_json)
+        self.ynab = YnabImportSettings(**import_settings_json['ynab'])
         self.accounts = [Account(**a) for a in accounts_json]
         self.statement_field_settings = StatementFieldSettings(
             accounts_by_transfer_payee_regex=

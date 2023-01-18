@@ -57,4 +57,5 @@ bulk = ynab_api.bulk_create_transactions(transactions)
 print(f'-- Duplicate: {len(bulk.duplicate_import_ids)}')
 print(f'-- Imported: {len(bulk.transaction_ids)}')
 
-json.dump(cfg.timestamp, open(TIMESTAMP_FILE, 'w'))
+if cfg.remember_last_import_timestamp:
+    json.dump(cfg.timestamp, open(TIMESTAMP_FILE, 'w'))
