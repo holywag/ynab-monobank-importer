@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from monobank import MonobankApi, ApiClient
+from bank_api import BankAccountApiLocator
 from ynab_api_wrapper import YnabApiWrapper, SingleBudgetYnabApiWrapper
 from model.configuration import Configuration
 from model.monobank_statement import MonobankStatementParser
@@ -22,7 +22,7 @@ cfg = Configuration(
 
 print('Starting import')
 
-bank_api = MonobankApi(ApiClient(cfg.bank.token, cfg.bank.n_retries))
+account_api_locator = BankAccountApiLocator(cfg.bank)
 ynab_api = SingleBudgetYnabApiWrapper(YnabApiWrapper(cfg.ynab.token), cfg.ynab.budget_name)
 
 statement_chain = []
@@ -31,9 +31,9 @@ for account in cfg.accounts:
     if not account.enabled:
         continue
     print(f'{account.iban} --> {account.ynab_name}')
-    bank_account_id = bank_api.request_account_id(account.iban)
-    raw_statements = bank_api.request_statements_for_time_range(
-        bank_account_id, cfg.bank.time_range.start, cfg.bank.time_range.end)
+    account_api = account_api_locator.get_account_api(account.iban)
+    raw_statements = account_api.request_statements_for_time_range(
+        cfg.bank.time_range.start, cfg.bank.time_range.end)
     if len(raw_statements) == 0:
         print(f'No statements fetched for the given period. Skipping.')
         continue
