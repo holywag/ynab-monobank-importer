@@ -63,5 +63,5 @@ if bulk:
 else:
     print(f'-- Nothing to import')
 
-# if cfg.remember_last_import_timestamp:
-#     json.dump(cfg.timestamp, open(TIMESTAMP_FILE, 'w'))
+if cfg.remember_last_import_timestamp:
+    json.dump(cfg.timestamp, open(TIMESTAMP_FILE, 'w'))
