@@ -1,5 +1,8 @@
 import ynab
+from model.transaction import YnabTransaction
 from collections import namedtuple
+from collections.abc import Iterable
+from functools import partial
 
 class YnabAccountNotFound(Exception):
     def __init__(self, account_name):
@@ -72,16 +75,34 @@ class YnabApiWrapper:
         except ValueError:
             raise YnabAccountNotFound(account_name)
 
-    def bulk_create_transactions(self, budget_id, transactions):
+    def bulk_create_transactions(self, budget_id, transactions: Iterable[YnabTransaction]):
+        bulk_t = list(map(partial(self.__SaveTransaction, budget_id), transactions))
+        if len(bulk_t) == 0:
+            return None
         transactions_api = ynab.TransactionsApi(self.__client)
         response = transactions_api.bulk_create_transactions(
-            budget_id, ynab.BulkTransactions(list(map(lambda t: ynab.SaveTransaction(**t), transactions))))
+            budget_id, ynab.BulkTransactions(bulk_t))
         return response.data.bulk
 
     def get_transactions(self, budget_id):
         transactions_api = ynab.TransactionsApi(self.__client)
         response = transactions_api.get_transactions(budget_id)
         return response.data.transactions
+
+    def __SaveTransaction(self, budget_id: str, t: YnabTransaction):
+        category_id, payee_id = None, None
+        if t.category:
+            category_id = self.get_category_id_by_name(budget_id, t.category.group, t.category.name)
+        if t.transfer_account:
+            payee_id = self.get_transfer_payee_id_by_account_name(budget_id, t.transfer_account.ynab_name)
+        return ynab.SaveTransaction(
+            account_id=self.get_account_id_by_name(budget_id, t.account.ynab_name),
+            date=t.time.date(),
+            amount=t.amount*10,
+            payee_name=t.payee,
+            payee_id=payee_id,
+            category_id=category_id,
+            memo=not category_id and not payee_id and f'mcc: {t.mcc} description: {t.description}' or None)
 
 class SingleBudgetYnabApiWrapper:
     def __init__(self, ynab_api, budget_name):
@@ -100,7 +121,7 @@ class SingleBudgetYnabApiWrapper:
     def get_transfer_payee_id_by_account_name(self, account_name):
         return self.ynab_api.get_transfer_payee_id_by_account_name(self.budget.id, account_name)
 
-    def bulk_create_transactions(self, transactions):
+    def bulk_create_transactions(self, transactions: Iterable[YnabTransaction]):
         return self.ynab_api.bulk_create_transactions(self.budget.id, transactions)
 
     def get_transactions(self):

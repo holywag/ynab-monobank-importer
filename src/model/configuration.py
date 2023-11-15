@@ -1,54 +1,131 @@
+from dataclasses import dataclass
+from strenum import StrEnum         # todo:  Migrate to python 3.11
+from collections.abc import Iterable
+from typing import Any
 from collections import namedtuple
 import re
 from datetime import datetime
 
-BankImportSettings = namedtuple('BankImportSettings', 'token n_retries time_range')
-TimeRangeSettings = namedtuple('TimeRangeSettings', 'start end')
-YnabImportSettings = namedtuple('YnabImportSettings', 'token budget_name')
-Account = namedtuple('Account', 'enabled ynab_name iban transfer_payee')
-StatementFieldSettings = namedtuple('StatementFieldSettings', 
-    'accounts_by_transfer_payee_regex categories_by_mcc categories_by_payee_regex payee_aliases_by_payee_regex')
-YnabCategory = namedtuple('YnabCategory', 'group name')
-RegexItem = namedtuple('RegexItem', 'regex_key value')
+@dataclass
+class TimeRange:
+    start: datetime
+    end: datetime
 
-class RegexList(list):
+@dataclass
+class BankAccountConfiguration:
+    enabled: bool
+    ynab_name: str
+    iban: str
+    transfer_payee: list[re.Pattern]
+
+class BankApiName(StrEnum):
+    MONO = 'monobank'
+    PUMB = 'pumb'
+
+    @classmethod
+    def from_str(cls, value_str):
+        for member in cls:
+            if member.value == value_str:
+                return member
+        raise ValueError(f"{value_str} is not a valid value for {cls.__name__}")
+
+@dataclass
+class BankApiConfiguration:
+    name: BankApiName
+    token: str
+    n_retries: int
+    remove_cancelled_statements: bool
+    accounts: list[BankAccountConfiguration]
+
+@dataclass
+class YnabConfiguration:
+    token: str
+    budget_name: str
+
+@dataclass
+class YnabCategory:
+    name: str
+    group: str
+
+class RegexDict:
+    """Dict-like collection whose keys are regular expressions 
+    """
+
+    def __init__(self, iterable: Iterable[tuple[re.Pattern, Any]]):
+        self.__elements = list(iterable)
+
+    def __repr__(self):
+        return self.__elements.__repr__()
+
     def get(self, key, default=None, condition=lambda _: True):
-        return next((r.value for r in self if r.regex_key.match(key) and condition(r.value)), default)
+        """Find an element whose regex pattern-key mathes a given key
+        """
+        return next((value for pattern,value in self.__elements if
+            pattern.match(key) and condition(value)), default)
 
+@dataclass
+class YnabCategoryMappings:
+    by_mcc: dict[int, YnabCategory]
+    by_payee: RegexDict # of YnabCategory
+
+@dataclass
+class StatementFieldMappings:
+    account_by_transfer_payee: RegexDict
+    category: YnabCategoryMappings
+    payee: RegexDict # of payee aliases
+
+@dataclass
 class Configuration:
-    def __init__(self, import_settings_json, accounts_json, categories_json, payees_json, timestamp_json=None):
-        self.remove_cancelled_statements = import_settings_json['remove_cancelled_statements']
+    merge_transfer_statements: bool
+    remember_last_import_timestamp: bool
+    time_range: TimeRange
+    apis: list[BankApiConfiguration]
+    ynab: YnabConfiguration
+    mappings: StatementFieldMappings
+
+    def __init__(self, import_settings_json, categories_json, payees_json, timestamp_json=None):
         self.merge_transfer_statements = import_settings_json['merge_transfer_statements']
         self.remember_last_import_timestamp = import_settings_json['remember_last_import_timestamp']
-        self.bank = Configuration.__bank_settings(
-            import_settings_json['bank'], self.remember_last_import_timestamp and timestamp_json)
-        self.ynab = YnabImportSettings(**import_settings_json['ynab'])
-        self.accounts = [Account(**a) for a in accounts_json]
-        self.statement_field_settings = StatementFieldSettings(
-            accounts_by_transfer_payee_regex=
-                RegexList([Configuration.__re_item(a.transfer_payee, a) for a in self.accounts if len(a.transfer_payee)]),
-            categories_by_payee_regex=
-                RegexList([Configuration.__re_item(c["criterias"].get("payee", []), YnabCategory(**c['ynab_category'])) 
-                    for c in categories_json if len(c["criterias"].get("payee", []))]),
-            payee_aliases_by_payee_regex=
-                RegexList([Configuration.__re_item(regexes, alias) for alias,regexes in payees_json.items() if len(regexes)]),
-            categories_by_mcc=
-                { mcc: YnabCategory(**c['ynab_category']) for c in categories_json for mcc in c['criterias'].get('mcc', []) })
+        self.apis = []
+
+        self.time_range = self.__time_range(
+            timestamp_json=self.remember_last_import_timestamp and timestamp_json,
+            **import_settings_json['bank']['time_range'])
+
+        for api_name, api_conf_list in import_settings_json['bank']['api'].items():
+            for api_conf_json in api_conf_list:
+                self.apis.append(BankApiConfiguration(
+                    name=BankApiName.from_str(api_name),
+                    token=api_conf_json['token'],
+                    n_retries=import_settings_json['bank']['n_retries'],
+                    remove_cancelled_statements=import_settings_json['remove_cancelled_statements'],
+                    accounts=[BankAccountConfiguration(**(a | {'transfer_payee': self.__pattern(a['transfer_payee'])}))
+                        for a in api_conf_json['accounts']]))
+
+        self.mappings = StatementFieldMappings(
+            account_by_transfer_payee=RegexDict((a.transfer_payee, a) for c in self.apis for a in c.accounts if a.transfer_payee),
+            category=YnabCategoryMappings(
+                by_mcc={ mcc: YnabCategory(**c['ynab_category']) for c in categories_json for mcc in c['criterias'].get('mcc', []) },
+                by_payee=RegexDict((self.__pattern(c["criterias"].get("payee", [])), YnabCategory(**c['ynab_category']))
+                    for c in categories_json if len(c["criterias"].get("payee", [])))),
+            payee=RegexDict((self.__pattern(regexes), alias) for alias,regexes in payees_json.items() if len(regexes)))
+            
+        self.ynab = YnabConfiguration(**import_settings_json['ynab'])
 
     @property
     def timestamp(self):
-        return {'last_import': datetime.now(tz=self.bank.time_range.start.tzinfo).isoformat()}
+        return {'last_import': datetime.now(tz=self.time_range.start.tzinfo).isoformat()}
 
-    def __bank_settings(bank_settings_json, timestamp_json=None):
+    @staticmethod
+    def __time_range(timestamp_json, start, end):
         last_import = timestamp_json and datetime.fromisoformat(timestamp_json['last_import'])
-        time_range_json = bank_settings_json['time_range']
-        time_range_start = datetime.fromisoformat(time_range_json['start'])
+        time_range_start = datetime.fromisoformat(start)
         if last_import and last_import > time_range_start:
             time_range_start = last_import
-        bank_settings = bank_settings_json | { 'time_range' : TimeRangeSettings(
+        return TimeRange(
             start=time_range_start,
-            end=time_range_json['end'] and datetime.fromisoformat(time_range_json['end']) or datetime.now(tz=time_range_start.tzinfo)) }
-        return BankImportSettings(**bank_settings)
+            end=end and datetime.fromisoformat(end) or datetime.now(tz=time_range_start.tzinfo))
 
-    def __re_item(regex_list, value):
-        return RegexItem(re.compile(f'(?:{"|".join(regex_list)})'), value)
+    @staticmethod
+    def __pattern(regex_str_list):
+        return re.compile(f'(?:{"|".join(regex_str_list)})') if len(regex_str_list) else None

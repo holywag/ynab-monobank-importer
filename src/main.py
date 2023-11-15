@@ -1,61 +1,67 @@
 #!/usr/bin/env python3
 
-from bank_api import BankAccountApiLocator
-from ynab_api_wrapper import YnabApiWrapper, SingleBudgetYnabApiWrapper
-from model.configuration import Configuration
-from model.monobank_statement import MonobankStatementParser
-from model.ynab_transaction import YnabTransactionConverter
-from filters.cancel_filter import CancelFilter
+import model.configuration as conf
+from model.transaction import YnabTransaction
 from filters.transfer_filter import TransferFilter
+from ynab_api_wrapper import YnabApiWrapper, SingleBudgetYnabApiWrapper
+from bank_api import BankApi
+from mono import Api as MonoApi
+from pumb import Api as PumbApi
 import json, itertools, os
+from functools import partial
 
 TIMESTAMP_FILE = './.timestamp'
 
+def create_api(configuration: conf.BankApiConfiguration) -> BankApi:
+    match configuration.name:
+        case conf.BankApiName.MONO:
+            return MonoApi(configuration)
+        case conf.BankApiName.PUMB:
+            return PumbApi(configuration)
+
 print('Initialization')
 
-cfg = Configuration(
+cfg = conf.Configuration(
     json.load(open('configuration/import_settings.json')),
-    json.load(open('configuration/accounts.json')),
     json.load(open('configuration/categories.json')),
     json.load(open('configuration/payees.json')),
     os.path.isfile(TIMESTAMP_FILE) and json.load(open(TIMESTAMP_FILE)))
 
 print('Starting import')
 
-account_api_locator = BankAccountApiLocator(cfg.bank)
 ynab_api = SingleBudgetYnabApiWrapper(YnabApiWrapper(cfg.ynab.token), cfg.ynab.budget_name)
 
 statement_chain = []
 
-for account in cfg.accounts:
-    if not account.enabled:
-        continue
-    print(f'{account.iban} --> {account.ynab_name}')
-    account_api = account_api_locator.get_account_api(account.iban)
-    raw_statements = account_api.request_statements_for_time_range(
-        cfg.bank.time_range.start, cfg.bank.time_range.end)
-    if len(raw_statements) == 0:
-        print(f'No statements fetched for the given period. Skipping.')
-        continue
-    print(f'-- Fetched: {len(raw_statements)}')
-    bank_statements = list(map(MonobankStatementParser(account, cfg.statement_field_settings), raw_statements))
-    if cfg.remove_cancelled_statements:
-        bank_statements = filter(CancelFilter(bank_statements), bank_statements)
-    statement_chain = itertools.chain(statement_chain, bank_statements)
+for api_conf in cfg.apis:
+    api = create_api(api_conf)
+    for account in api_conf.accounts:
+        if not account.enabled:
+            continue
+        print(f'{account.iban} --> {account.ynab_name}')
+        trans = api.request_statements_for_time_range(
+            account.iban, cfg.time_range.start, cfg.time_range.end)
+        if trans:
+            statement_chain = itertools.chain(statement_chain, trans)
+        else:
+            print(f'No statements fetched for the given period. Skipping.')
 
 print('Processing...')
 
-if cfg.merge_transfer_statements:
-    statement_chain = filter(TransferFilter(), statement_chain)
+ynab_trans = map(partial(YnabTransaction, cfg.mappings), statement_chain)
 
-transactions = list(map(YnabTransactionConverter(ynab_api), statement_chain))
+if cfg.merge_transfer_statements:
+    ynab_trans = filter(TransferFilter(), ynab_trans)
 
 print(f'Sending...')
 
-bulk = ynab_api.bulk_create_transactions(transactions)
+bulk = ynab_api.bulk_create_transactions(ynab_trans)
 
-print(f'-- Duplicate: {len(bulk.duplicate_import_ids)}')
-print(f'-- Imported: {len(bulk.transaction_ids)}')
+if bulk:
+    print(f'-- Duplicate: {len(bulk.duplicate_import_ids)}')
+    print(f'-- Imported: {len(bulk.transaction_ids)}')
+else:
+    print(f'-- Nothing to import')
 
-if cfg.remember_last_import_timestamp:
-    json.dump(cfg.timestamp, open(TIMESTAMP_FILE, 'w'))
+# if cfg.remember_last_import_timestamp:
+#     json.dump(cfg.timestamp, open(TIMESTAMP_FILE, 'w'))
