@@ -48,6 +48,7 @@ for api_conf in cfg.apis:
 
 print('Processing...')
 
+# Categorize transactions by converting them to YnabTransaction
 ynab_trans = map(partial(YnabTransaction, cfg.mappings), statement_chain)
 
 if cfg.merge_transfer_statements:

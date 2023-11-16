@@ -102,7 +102,7 @@ class YnabApiWrapper:
             payee_name=t.payee,
             payee_id=payee_id,
             category_id=category_id,
-            memo=not category_id and not payee_id and f'mcc: {t.mcc} description: {t.description}' or None)
+            memo=not category_id and not payee_id and f'mcc: {t.mcc} description: {t.description} comment: {t.comment}' or None)
 
 class SingleBudgetYnabApiWrapper:
     def __init__(self, ynab_api, budget_name):

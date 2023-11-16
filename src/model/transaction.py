@@ -1,20 +1,21 @@
 import model.configuration as conf
 from datetime import datetime
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, KW_ONLY
 
 @dataclass
-class Transaction:
-    id: str
-    time: datetime
-    amount: float
-    mcc: int
-    payee: str
-    description: str
+class Transaction():
     account: conf.BankAccountConfiguration
+    time: datetime
+    amount: int
+    description: str
+    _: KW_ONLY
+    comment: str = None
+    mcc: int = None
+    id: str = None
 
-@dataclass
+@dataclass()
 class YnabTransaction(Transaction):
-    payee_alias: str
+    payee: str
     transfer_account: conf.BankAccountConfiguration
     category: conf.YnabCategory
 
@@ -27,6 +28,8 @@ class YnabTransaction(Transaction):
         - by mcc->category mapping
         """
         super().__init__(**{field: getattr(src, field) for field in src.__dataclass_fields__})
-        self.payee_alias = mappings.payee.get(self.payee) or self.payee,
+        self.payee_alias = mappings.payee.get(self.description) or self.description,
         self.transfer_account = mappings.account_by_transfer_payee.get(self.payee, condition=lambda a: a.iban != self.account.iban)
-        self.category = mappings.category.by_payee.get(self.payee, mappings.category.by_mcc.get(self.mcc))
+        self.category = mappings.category.by_payee.get(self.payee)
+        if not self.category and self.mcc:
+            self.category = mappings.category.by_mcc.get(self.mcc)

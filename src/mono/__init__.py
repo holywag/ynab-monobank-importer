@@ -29,5 +29,6 @@ class Api(BankApi):
             time=datetime.fromtimestamp(int(s['time'])),
             amount=s['amount'],
             mcc=int(s['mcc']),
-            description=s['description'],
-            payee=s['description']), raw_statements)
+            comment=s['comment'],
+            description=s['description']
+        ), raw_statements)
