@@ -3,7 +3,7 @@
 ## Dependencies
 
 ```
-pip install $(ls -d api/*)
+pip install $(ls -d api/*) -r ./requirements.txt
 ```
 
 ## Configuration
