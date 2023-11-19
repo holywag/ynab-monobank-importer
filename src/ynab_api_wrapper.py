@@ -102,7 +102,7 @@ class YnabApiWrapper:
             account_id=self.get_account_id_by_name(budget_id, t.account.ynab_name),
             date=t.time.date(),
             amount=t.amount*10,
-            payee_name=t.payee,
+            payee_name=t.payee[:100],
             payee_id=payee_id,
             category_id=category_id,
             memo=memo or None)
