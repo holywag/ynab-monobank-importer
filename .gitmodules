@@ -4,3 +4,7 @@
 [submodule "api/ynab-python"]
 	path = api/ynab-python
 	url = https://github.com/holywag/ynab-python.git
+[submodule "config"]
+	path = config
+	url = git@github.com:holywag/ynab-importer-config.git
+	branch = main
