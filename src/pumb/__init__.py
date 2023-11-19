@@ -32,7 +32,6 @@ class Api(BankApi):
         return filter(lambda t: start <= t.time <= end, df)
 
     def __parse_pdf(self, filepath: Path) -> pd.DataFrame:
-        print(f'Parsing {filepath}')
         df = tabula.read_pdf(filepath, pages='all', lattice=True, multiple_tables=False)[0]
         df.columns = ['date', 'amount_orig', 'date_posted', 'amount_uah', 'commission', 'card_num', 'description', 'type']
         df.drop(df.tail(4).index, inplace=True) # Drop summary
