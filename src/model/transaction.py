@@ -28,8 +28,9 @@ class YnabTransaction(Transaction):
         - by mcc->category mapping
         """
         super().__init__(**{field: getattr(src, field) for field in src.__dataclass_fields__})
-        self.payee_alias = mappings.payee.get(self.description) or self.description,
-        self.transfer_account = mappings.account_by_transfer_payee.get(self.payee, condition=lambda a: a.iban != self.account.iban)
-        self.category = mappings.category.by_payee.get(self.payee)
+        self.payee = mappings.payee.get(self.description) or self.description
+        self.transfer_account = mappings.account_by_transfer_payee.get(
+            self.description, condition=lambda a: a.iban != self.account.iban)
+        self.category = mappings.category.by_payee.get(self.description)
         if not self.category and self.mcc:
             self.category = mappings.category.by_mcc.get(self.mcc)

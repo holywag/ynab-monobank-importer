@@ -95,6 +95,9 @@ class YnabApiWrapper:
             category_id = self.get_category_id_by_name(budget_id, t.category.group, t.category.name)
         if t.transfer_account:
             payee_id = self.get_transfer_payee_id_by_account_name(budget_id, t.transfer_account.ynab_name)
+        memo = t.comment or ''
+        if not category_id and not payee_id:
+            memo = f'{memo} {t.description} {t.mcc or ""}'.strip()
         return ynab.SaveTransaction(
             account_id=self.get_account_id_by_name(budget_id, t.account.ynab_name),
             date=t.time.date(),
@@ -102,7 +105,7 @@ class YnabApiWrapper:
             payee_name=t.payee,
             payee_id=payee_id,
             category_id=category_id,
-            memo=not category_id and not payee_id and f'mcc: {t.mcc} description: {t.description} comment: {t.comment}' or None)
+            memo=memo or None)
 
 class SingleBudgetYnabApiWrapper:
     def __init__(self, ynab_api, budget_name):

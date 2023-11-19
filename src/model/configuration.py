@@ -58,10 +58,10 @@ class RegexDict:
         return self.__elements.__repr__()
 
     def get(self, key, default=None, condition=lambda _: True):
-        """Find an element whose regex pattern-key mathes a given key
+        """Find an element whose regex pattern-key matches a given key
         """
-        return next((value for pattern,value in self.__elements if
-            pattern.match(key) and condition(value)), default)
+        return next((value for pattern,value in self.__elements
+            if pattern.match(key) and condition(value)), default)
 
 @dataclass
 class YnabCategoryMappings:
