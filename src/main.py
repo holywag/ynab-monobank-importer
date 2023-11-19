@@ -10,7 +10,7 @@ from pumb import Api as PumbApi
 import json, itertools, os
 from functools import partial
 
-TIMESTAMP_FILE = './.timestamp'
+TIMESTAMP_FILE = './config/timestamp.json'
 
 def create_api(configuration: conf.BankApiConfiguration) -> BankApi:
     match configuration.name:
@@ -22,9 +22,9 @@ def create_api(configuration: conf.BankApiConfiguration) -> BankApi:
 print('Initialization')
 
 cfg = conf.Configuration(
-    json.load(open('configuration/import_settings.json')),
-    json.load(open('configuration/categories.json')),
-    json.load(open('configuration/payees.json')),
+    json.load(open('config/import_settings.json')),
+    json.load(open('config/categories.json')),
+    json.load(open('config/payees.json')),
     os.path.isfile(TIMESTAMP_FILE) and json.load(open(TIMESTAMP_FILE)))
 
 print('Starting import')
