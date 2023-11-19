@@ -13,7 +13,8 @@ class TransferFilter:
         src = t.account.iban
         dst = t.transfer_account.iban
         amount = t.amount
-        return forward and f'{src}_{dst}_{amount}' or f'{dst}_{src}_{-amount}'
+        date = t.time.strftime('%Y-%m-%d')
+        return f'{date}_{src}_{dst}_{amount}' if forward else f'{date}_{dst}_{src}_{-amount}'
 
     def __call__(self, t: YnabTransaction):
         if t.transfer_account:
