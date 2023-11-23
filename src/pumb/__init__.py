@@ -20,9 +20,10 @@ class Api(BankApi):
         account = self.accounts.get(iban)
         if not account:
             raise UnknownIban(self.conf.name, iban)
-        df = pd.concat(self.__parse_pdf(f) for f in (Path(self.conf.token) / account.iban).rglob('*.pdf'))
-        if len(df) == 0:
+        rglob = list((Path(self.conf.token) / account.iban).rglob('*.pdf'))
+        if len(rglob) == 0:
             return []
+        df = pd.concat(self.__parse_pdf(f) for f in rglob)
         df.drop_duplicates(['date', 'amount_uah'], keep='last', inplace=True)
         df = df.apply(axis=1, result_type='reduce', func=lambda row: Transaction(
             time=datetime.strptime(row.date, '%Y-%m-%d\r%H:%M:%S').astimezone(start.tzinfo),

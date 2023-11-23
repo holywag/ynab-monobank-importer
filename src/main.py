@@ -43,8 +43,6 @@ for api_conf in cfg.apis:
             account.iban, cfg.time_range.start, cfg.time_range.end)
         if trans:
             statement_chain = itertools.chain(statement_chain, trans)
-        else:
-            print(f'No statements fetched for the given period. Skipping.')
 
 print('Processing...')
 
