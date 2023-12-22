@@ -1,8 +1,6 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, asdict
 from datetime import datetime
 from collections.abc import Iterable
-import model.configuration as conf
 from model.transaction import Transaction
 
 class UnknownIban(Exception):

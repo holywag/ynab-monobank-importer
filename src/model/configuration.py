@@ -21,6 +21,7 @@ class BankAccountConfiguration:
 class BankApiName(StrEnum):
     MONO = 'monobank'
     PUMB = 'pumb'
+    SENSE = 'sensebank'
 
     @classmethod
     def from_str(cls, value_str):

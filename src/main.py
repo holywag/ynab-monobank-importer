@@ -4,20 +4,11 @@ import model.configuration as conf
 from model.transaction import YnabTransaction
 from filters.transfer_filter import TransferFilter
 from ynab_api_wrapper import YnabApiWrapper, SingleBudgetYnabApiWrapper
-from bank_api import BankApi
-from mono import Api as MonoApi
-from pumb import Api as PumbApi
+import bank_api.factory as bank_api_factory
 import json, itertools, os
 from functools import partial
 
 TIMESTAMP_FILE = './config/timestamp.json'
-
-def create_api(configuration: conf.BankApiConfiguration) -> BankApi:
-    match configuration.name:
-        case conf.BankApiName.MONO:
-            return MonoApi(configuration)
-        case conf.BankApiName.PUMB:
-            return PumbApi(configuration)
 
 print('Initialization')
 
@@ -34,7 +25,7 @@ ynab_api = SingleBudgetYnabApiWrapper(YnabApiWrapper(cfg.ynab.token), cfg.ynab.b
 statement_chain = []
 
 for api_conf in cfg.apis:
-    api = create_api(api_conf)
+    api = bank_api_factory.create(api_conf)
     for account in api_conf.accounts:
         if not account.enabled:
             continue
