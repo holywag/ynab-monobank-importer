@@ -25,6 +25,8 @@ ynab_api = SingleBudgetYnabApiWrapper(YnabApiWrapper(cfg.ynab.token), cfg.ynab.b
 statement_chain = []
 
 for api_conf in cfg.apis:
+    if not sum(a.enabled for a in api_conf.accounts):
+        continue
     api = bank_api_factory.create(api_conf)
     for account in api_conf.accounts:
         if not account.enabled:

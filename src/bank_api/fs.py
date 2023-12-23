@@ -38,6 +38,7 @@ class FilesystemBankApi(BankApi):
             return []
         df = pd.concat(self.engine.parse_document(f) for f in rglob)
         df = self.engine.post_process(df)
+        df.drop_duplicates(inplace=True, keep='last')
         def parse_row(r: pd.Series) -> Transaction:
             fields = self.engine.parse_row(r)
             # todo: determine the real timezone

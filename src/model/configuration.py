@@ -1,8 +1,7 @@
 from dataclasses import dataclass
-from strenum import StrEnum         # todo:  Migrate to python 3.11
+from enum import StrEnum
 from collections.abc import Iterable
 from typing import Any
-from collections import namedtuple
 import re
 from datetime import datetime
 
@@ -22,6 +21,8 @@ class BankApiName(StrEnum):
     MONO = 'monobank'
     PUMB = 'pumb'
     SENSE = 'sensebank'
+    ABANK = 'abank'
+    PB = 'privatbank'
 
     @classmethod
     def from_str(cls, value_str):

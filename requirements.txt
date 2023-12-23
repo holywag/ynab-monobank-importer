@@ -1,2 +1,2 @@
 tabula-py
-strenum
+jpype1
