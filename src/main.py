@@ -3,8 +3,7 @@
 import model.configuration as conf
 from model.transaction import YnabTransaction
 from filters.transfer_filter import TransferFilter
-from ynab_api_wrapper import YnabApiWrapper, SingleBudgetYnabApiWrapper
-import bank_api.factory as bank_api_factory
+import bank_api, ynab_api
 import json, itertools, os
 from functools import partial
 
@@ -20,14 +19,14 @@ cfg = conf.Configuration(
 
 print('Starting import')
 
-ynab_api = SingleBudgetYnabApiWrapper(YnabApiWrapper(cfg.ynab.token), cfg.ynab.budget_name)
+ynab_api = ynab_api.SingleBudgetYnabApiWrapper(ynab_api.YnabApiWrapper(cfg.ynab.token), cfg.ynab.budget_name)
 
 statement_chain = []
 
 for api_conf in cfg.apis:
     if not sum(a.enabled for a in api_conf.accounts):
         continue
-    api = bank_api_factory.create(api_conf)
+    api = bank_api.create(api_conf)
     for account in api_conf.accounts:
         if not account.enabled:
             continue

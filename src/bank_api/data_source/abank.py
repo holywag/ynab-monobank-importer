@@ -1,4 +1,4 @@
-from bank_api.fs import FilesystemBankApiEngine
+from .fs import FilesystemBankApiEngine
 import tabula
 import pandas as pd
 from pathlib import Path

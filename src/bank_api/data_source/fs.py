@@ -1,4 +1,4 @@
-from bank_api import BankApi, Transaction, UnknownIban
+from . import BankApi, Transaction, UnknownIban
 from model.configuration import BankApiConfiguration
 from pathlib import Path
 import pandas as pd

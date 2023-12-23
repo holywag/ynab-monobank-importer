@@ -1,5 +1,5 @@
 from .cancel_filter import CancelFilter
-from bank_api import BankApi, Transaction, UnknownIban, MissingAccountConfiguration
+from .. import BankApi, Transaction, UnknownIban, MissingAccountConfiguration
 from model.configuration import BankApiConfiguration
 from monobank import MonobankApi, ApiClient
 from datetime import datetime

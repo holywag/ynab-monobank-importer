@@ -3,7 +3,7 @@ from datetime import datetime
 from dataclasses import dataclass, asdict, KW_ONLY
 
 @dataclass
-class Transaction():
+class Transaction:
     account: conf.BankAccountConfiguration
     time: datetime
     amount: int
