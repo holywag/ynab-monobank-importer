@@ -13,7 +13,7 @@ class Transaction:
     mcc: int = None
     id: str = None
 
-@dataclass()
+@dataclass
 class YnabTransaction(Transaction):
     payee: str
     transfer_account: conf.BankAccountConfiguration
