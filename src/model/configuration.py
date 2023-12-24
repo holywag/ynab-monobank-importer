@@ -23,6 +23,7 @@ class BankApiName(StrEnum):
     SENSE = 'sensebank'
     ABANK = 'abank'
     PB = 'privatbank'
+    UKRSIB = 'ukrsibbank'
 
     @classmethod
     def from_str(cls, value_str):
