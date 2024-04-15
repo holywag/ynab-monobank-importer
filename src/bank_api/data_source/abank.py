@@ -19,6 +19,6 @@ class Engine(FilesystemBankApiEngine):
         return {
             'time': datetime.strptime(row.date, '%d.%m.%Y\r%H:%M'),
             'amount': int(row.amount_uah * 100),
-            'description': ('Transfer: ' if row.mcc == 6010 and row.description == 'Монобанк' else '') + row.description,
+            'description': ('Transfer: ' if row.mcc in (6010,4829) and row.description == 'Монобанк' else '') + row.description,
             'mcc': row.mcc
         }
