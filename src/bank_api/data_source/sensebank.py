@@ -11,7 +11,7 @@ class Engine(FilesystemBankApiEngine):
     def parse_document(self, f: Path) -> pd.DataFrame:
         df = pd.read_csv(f, skiprows=5, skipfooter=1, encoding='cp1251', engine='python', sep=';', decimal=',')
         # Skip repeated headers
-        df = df[df.ne(df.columns).any(axis=1) & ~df['Дата і час'].str.match('Операції за карткою: .+')]
+        df = df[df.ne(df.columns).any(axis=1) & ~df['Дата і час'].str.match('(Операції за карткою:|Деталізація операцій за карткою:) .+')]
         df.rename(inplace=True, columns={'Дата і час': 'date', 'Деталі': 'description', 'MCC': "mcc", 'Cума списання': 'credit', 'Cума зарахування': 'debit'})
         return df
     
