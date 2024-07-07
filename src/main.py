@@ -19,7 +19,7 @@ cfg = conf.Configuration(
 
 print('Starting import')
 
-ynab_api = ynab_api.SingleBudgetYnabApiWrapper(ynab_api.YnabApiWrapper(cfg.ynab.token), cfg.ynab.budget_name)
+ynab = ynab_api.SingleBudgetYnabApiWrapper(ynab_api.YnabApiWrapper(cfg.ynab.token), cfg.ynab.budget_name)
 
 statement_chain = []
 
@@ -39,18 +39,17 @@ for api_conf in cfg.apis:
 print('Processing...')
 
 # Categorize transactions by converting them to YnabTransaction
-ynab_trans = map(partial(YnabTransaction, cfg.mappings), statement_chain)
+ynab_trans = map(partial(YnabTransaction.from_Transaction, cfg.mappings), statement_chain)
 
 if cfg.merge_transfer_statements:
     ynab_trans = filter(TransferFilter(), ynab_trans)
 
 print(f'Sending...')
 
-bulk = ynab_api.bulk_create_transactions(ynab_trans)
+result = ynab.create_transactions(ynab_trans)
 
-if bulk:
-    print(f'-- Duplicate: {len(bulk.duplicate_import_ids)}')
-    print(f'-- Imported: {len(bulk.transaction_ids)}')
+if result:
+    print(f'-- Imported: {len(result.transaction_ids)}')
 else:
     print(f'-- Nothing to import')
 

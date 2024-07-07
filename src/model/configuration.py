@@ -24,6 +24,7 @@ class BankApiName(StrEnum):
     ABANK = 'abank'
     PB = 'privatbank'
     UKRSIB = 'ukrsibbank'
+    TRACKING = 'tracking'
 
     @classmethod
     def from_str(cls, value_str):
@@ -102,16 +103,19 @@ class Configuration:
                     token=api_conf_json['token'],
                     n_retries=import_settings_json['bank']['n_retries'],
                     remove_cancelled_statements=import_settings_json['remove_cancelled_statements'],
-                    accounts=[BankAccountConfiguration(**(a | {'transfer_payee': self.__pattern(a['transfer_payee'])}))
+                    accounts=[BankAccountConfiguration(
+                            **(a | {
+                                'transfer_payee': self.__pattern(*a.get('transfer_payee', []), "Transfer : " + re.escape(a['ynab_name'])),
+                                'iban': a.get('iban')}))
                         for a in api_conf_json['accounts']]))
 
         self.mappings = StatementFieldMappings(
             account_by_transfer_payee=RegexDict((a.transfer_payee, a) for c in self.apis for a in c.accounts if a.transfer_payee),
             category=YnabCategoryMappings(
                 by_mcc={ mcc: YnabCategory(**c['ynab_category']) for c in categories_json for mcc in c['criterias'].get('mcc', []) },
-                by_payee=RegexDict((self.__pattern(c["criterias"].get("payee", [])), YnabCategory(**c['ynab_category']))
+                by_payee=RegexDict((self.__pattern(*c["criterias"].get("payee", [])), YnabCategory(**c['ynab_category']))
                     for c in categories_json if len(c["criterias"].get("payee", [])))),
-            payee=RegexDict((self.__pattern(regexes), alias) for alias,regexes in payees_json.items() if len(regexes)))
+            payee=RegexDict((self.__pattern(*regexes), alias) for alias,regexes in payees_json.items() if len(regexes)))
             
         self.ynab = YnabConfiguration(**import_settings_json['ynab'])
 
@@ -130,5 +134,5 @@ class Configuration:
             end=end and datetime.fromisoformat(end) or datetime.now(tz=time_range_start.tzinfo))
 
     @staticmethod
-    def __pattern(regex_str_list):
+    def __pattern(*regex_str_list):
         return re.compile(f'(?:{"|".join(regex_str_list)})') if len(regex_str_list) else None

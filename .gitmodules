@@ -8,3 +8,6 @@
 	path = config
 	url = git@github.com:holywag/ynab-importer-config.git
 	branch = main
+[submodule "api/ynab-openapi"]
+	path = api/ynab-openapi
+	url = https://github.com/holywag/ynab-openapi.git

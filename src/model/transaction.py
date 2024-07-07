@@ -1,14 +1,14 @@
 import model.configuration as conf
 from datetime import datetime
-from dataclasses import dataclass, asdict, KW_ONLY
+from dataclasses import dataclass, KW_ONLY
 
 @dataclass
 class Transaction:
     account: conf.BankAccountConfiguration
     time: datetime
     amount: int
-    description: str
     _: KW_ONLY
+    description: str = ''
     comment: str = None
     mcc: int = None
     id: str = None
@@ -19,7 +19,8 @@ class YnabTransaction(Transaction):
     transfer_account: conf.BankAccountConfiguration
     category: conf.YnabCategory
 
-    def __init__(self, mappings: conf.StatementFieldMappings, src: Transaction):
+    @classmethod
+    def from_Transaction(cls, mappings: conf.StatementFieldMappings, t: Transaction):
         """
         Init by extending the original Transaction object with additional fields.
         Each statement is categorized using StatementFieldMappings in the following order:
@@ -27,10 +28,19 @@ class YnabTransaction(Transaction):
         - by payee->category mapping
         - by mcc->category mapping
         """
-        super().__init__(**{field: getattr(src, field) for field in src.__dataclass_fields__})
-        self.payee = mappings.payee.get(self.description) or self.description
-        self.transfer_account = mappings.account_by_transfer_payee.get(
-            self.description, condition=lambda a: a.iban != self.account.iban)
-        self.category = mappings.category.by_payee.get(self.description)
-        if not self.category and self.mcc:
-            self.category = mappings.category.by_mcc.get(self.mcc)
+        return cls(
+            **{field: getattr(t, field) for field in t.__dataclass_fields__},
+            payee=mappings.payee.get(t.description) or t.description,
+            transfer_account=mappings.account_by_transfer_payee.get(
+                t.description, condition=lambda a: a.ynab_name != t.account.ynab_name),
+            category = mappings.category.by_payee.get(t.description) or
+                mappings.category.by_mcc.get(t.mcc))
+
+@dataclass
+class YnabTransactionGroup(YnabTransaction):
+    subtransactions: list[YnabTransaction]
+
+    @classmethod
+    def from_YnabTransaction(cls, t: YnabTransaction):
+        return cls(**{field: getattr(t, field) for field in t.__dataclass_fields__}, subtransactions=[t,])
+
