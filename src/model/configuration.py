@@ -19,7 +19,8 @@ class BankAccountConfiguration:
 
 class BankApiName(StrEnum):
     MONO = 'monobank'
-    PUMB = 'pumb'
+    PUMB_DEBIT = 'pumb'
+    PUMB_CREDIT = 'pumb_credit'
     SENSE = 'sensebank'
     ABANK = 'abank'
     PB = 'privatbank'
