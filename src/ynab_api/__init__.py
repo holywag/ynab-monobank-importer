@@ -95,8 +95,9 @@ class YnabApiWrapper:
         if t.transfer_account:
             payee_id = self.get_transfer_payee_id_by_account_name(budget_id, t.transfer_account.ynab_name)
         memo = t.comment or ''
-        if not category_id and not payee_id:
+        if not category_id and not payee_id and t.payee != t.description:
             memo = f'{memo} {t.description} {t.mcc or ""}'.strip()
+
         subtrs = []
         if isinstance(t, YnabTransactionGroup):
             for subtr in t.subtransactions:

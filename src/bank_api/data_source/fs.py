@@ -40,8 +40,9 @@ class FilesystemBankApi(BankApi):
         df = self.engine.post_process(df)
         df.drop_duplicates(inplace=True, keep='last')
         def parse_row(r: pd.Series) -> Transaction:
+            # TODO: improve interface of parse_row: control Transaction fields
             fields = self.engine.parse_row(r)
-            # todo: determine the real timezone
+            # TODO: determine the real timezone
             return Transaction(**(fields | { 'account': account, 'time': fields['time'].astimezone(start.tzinfo) }))
         df = df.apply(parse_row, axis=1, result_type='reduce')
         return filter(lambda t: start <= t.time <= end, df)

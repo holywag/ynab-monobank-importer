@@ -25,6 +25,7 @@ class BankApiName(StrEnum):
     ABANK = 'abank'
     PB = 'privatbank'
     UKRSIB = 'ukrsibbank'
+    MILLENNIUM = 'millennium'
     TRACKING = 'tracking'
 
     @classmethod
