@@ -12,9 +12,11 @@ class Engine(FilesystemBankApiEngine):
     No lattice, as such relies on the exact column positions.
     """
 
+    EXTRATO_COMBINADO='EXTRATO COMBINADO'
+
     @property
     def glob_pattern(self) -> str:
-        return 'Extrato Combinado 20*.pdf'
+        return f'{Engine.EXTRATO_COMBINADO} 20*.pdf'
 
     def parse_document(self, f: Path) -> pd.DataFrame:
         # Columns are located at 1.1, 1.51, 4.7, 5.77, 6.95 inches from the left side.
@@ -37,7 +39,7 @@ class Engine(FilesystemBankApiEngine):
                         strict=True
         )),[]))
         # Fix date columns: convert to datetime, deduce year from file name
-        year = re.match(r'Extrato Combinado (\d{4})\d{3}\.pdf', f.name).group(1)
+        year = re.match(Engine.EXTRATO_COMBINADO + r' (\d{4})\d{3}\.pdf', f.name).group(1)
         df[['data_lanc', 'data_valor']] = (
             df[['data_lanc', 'data_valor']]
                 .apply(lambda col: pd.to_datetime(col + f'.{year}', format='%m.%d.%Y')))
