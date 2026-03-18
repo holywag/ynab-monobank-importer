@@ -1,2 +1,4 @@
+pydantic>=2.0
+pyyaml
 tabula-py
 jpype1
