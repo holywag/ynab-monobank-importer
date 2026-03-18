@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 
 import config
-from model.transaction import YnabTransaction
+from sources import BankApiSource
 from filters.transfer_filter import TransferFilter
-import bank_api, ynab_api
+import ynab_api
 import json, itertools
 from datetime import datetime
-from functools import partial
 
 TIMESTAMP_FILE = './config/timestamp.json'
 
@@ -18,30 +17,15 @@ print('Starting import')
 
 ynab = ynab_api.SingleBudgetYnabApiWrapper(ynab_api.YnabApiWrapper(cfg.ynab.token), cfg.ynab.budget_name)
 
-statement_chain = []
+sources = [BankApiSource(api_conf, cfg.mappings, cfg.time_range) for api_conf in cfg.apis]
+ynab_trans = list(itertools.chain.from_iterable(src.read() for src in sources))
 
-for api_conf in cfg.apis:
-    if not sum(a.enabled for a in api_conf.accounts):
-        continue
-    api = bank_api.create(api_conf)
-    for account in api_conf.accounts:
-        if not account.enabled:
-            continue
-        print(f'{account.iban} --> {account.ynab_name}')
-        trans = api.request_statements_for_time_range(
-            account.iban, cfg.time_range.start, cfg.time_range.end)
-        if trans:
-            statement_chain = itertools.chain(statement_chain, trans)
-
-print('Processing...')
-
-# TODO: Move from_Transaction logic out of model into source/adapter layer
-ynab_trans = map(partial(YnabTransaction.from_Transaction, cfg.mappings), statement_chain)
+print(f'Processing {len(ynab_trans)} transactions...')
 
 if cfg.merge_transfer_statements:
-    ynab_trans = filter(TransferFilter(), ynab_trans)
+    ynab_trans = list(filter(TransferFilter(), ynab_trans))
 
-print('Sending...')
+print(f'Sending {len(ynab_trans)}...')
 
 result = ynab.create_transactions(ynab_trans)
 
