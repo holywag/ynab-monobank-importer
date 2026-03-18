@@ -1,17 +1,16 @@
-"""Domain data classes for configuration. No parsing logic here — see config.loader."""
+"""Domain data classes for configuration and pipeline context."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
 from collections.abc import Iterable
 from typing import Any
 import re
-from datetime import datetime
 
 
 @dataclass
 class TimeRange:
-    start: datetime
-    end: datetime
+    start: 'datetime'
+    end: 'datetime'
 
 
 @dataclass
@@ -41,12 +40,6 @@ class BankApiConfiguration:
     n_retries: int
     remove_cancelled_statements: bool
     accounts: list[BankAccountConfiguration]
-
-
-@dataclass
-class YnabConfiguration:
-    token: str
-    budget_name: str
 
 
 @dataclass
@@ -84,10 +77,18 @@ class StatementFieldMappings:
 
 
 @dataclass
-class Configuration:
-    merge_transfer_statements: bool
-    remember_last_import_timestamp: bool
-    time_range: TimeRange
-    apis: list[BankApiConfiguration]
-    ynab: YnabConfiguration
+class ResolvedBudget:
+    """A YNAB budget with resolved mappings, ready for pipeline use."""
+    token: str
+    budget_name: str
     mappings: StatementFieldMappings
+
+
+@dataclass
+class PipelineContext:
+    """Holds all resolved config data available to pipeline steps."""
+    accounts: dict[str, BankAccountConfiguration]
+    source_configs: dict[str, BankApiConfiguration]
+    budgets: dict[str, ResolvedBudget]
+    pipeline_paths: dict[str, str] = field(default_factory=dict)
+    timestamp_file: str = './config/timestamp.json'

@@ -1,115 +1,129 @@
-"""Load and validate YAML configuration, producing domain objects."""
+"""Load and validate YAML configuration, producing PipelineContext."""
 
 import json
 import re
-from copy import copy
 from datetime import datetime
-from pathlib import Path
 
 import yaml
 
-from .schema import RootConfig, MonobankSourceConfig
+from .schema import (
+    RootConfig, BudgetConfig, SourceConfig,
+    MonobankSourceConfig, FilesystemSourceConfig, TrackingSourceConfig,
+    AccountConfig,
+)
 from model.configuration import (
     BankAccountConfiguration, BankApiConfiguration, BankApiName,
-    Configuration, RegexDict, StatementFieldMappings,
-    TimeRange, YnabCategory, YnabCategoryMappings, YnabConfiguration,
+    PipelineContext, RegexDict, ResolvedBudget, StatementFieldMappings,
+    TimeRange, YnabCategory, YnabCategoryMappings,
 )
 
-TIMESTAMP_FILE = './config/timestamp.json'
 
-
-def load(config_path: str = 'config/config.yaml') -> Configuration:
-    """Load YAML config, validate with Pydantic, build domain Configuration."""
+def load(config_path: str = 'config/config.yaml') -> PipelineContext:
+    """Load YAML config, validate with Pydantic, build PipelineContext."""
     with open(config_path) as f:
         raw = yaml.safe_load(f)
 
     schema = RootConfig.model_validate(raw)
+    sources_data = _load_yaml(schema.sources)
+    budgets_data = _load_yaml(schema.budgets)
 
-    # Build account identity objects
-    accounts: dict[str, BankAccountConfiguration] = {}
-    for acc_id, acc_cfg in schema.accounts.items():
-        patterns = list(acc_cfg.transfer_patterns)
-        if acc_cfg.ynab_name:
-            patterns.append('Transfer : ' + re.escape(acc_cfg.ynab_name))
-        accounts[acc_id] = BankAccountConfiguration(
-            enabled=False,
-            ynab_name=acc_cfg.ynab_name,
-            iban=acc_cfg.iban,
-            transfer_payee=_compile_pattern(*patterns),
-        )
+    # Validate sources against schema
+    sources_validated: dict[str, SourceConfig] = {
+        k: _validate_source(k, v) for k, v in sources_data.items()
+    }
 
-    # Build bank API configurations
-    apis: list[BankApiConfiguration] = []
-    for source_id, src_cfg in schema.sources.items():
+    # Build accounts and source configs from sources section
+    all_accounts: dict[str, BankAccountConfiguration] = {}
+    source_configs: dict[str, BankApiConfiguration] = {}
+
+    for source_id, src_cfg in sources_validated.items():
         source_accounts = []
-        for acc_id, enabled in src_cfg.accounts.items():
-            acc = copy(accounts[acc_id])
-            acc.enabled = enabled
-            # Replace shared account object so source has its own copy with correct enabled
-            accounts[acc_id] = acc
+        for acc_id, acc_cfg in src_cfg.accounts.items():
+            patterns = list(acc_cfg.transfer_patterns)
+            if acc_cfg.ynab_name:
+                patterns.append('Transfer : ' + re.escape(acc_cfg.ynab_name))
+            acc = BankAccountConfiguration(
+                enabled=acc_cfg.enabled,
+                ynab_name=acc_cfg.ynab_name,
+                iban=acc_cfg.iban,
+                transfer_payee=compile_pattern(*patterns) if patterns else None,
+            )
+            all_accounts[acc_id] = acc
             source_accounts.append(acc)
 
+        if isinstance(src_cfg, TrackingSourceConfig):
+            # Tracking accounts participate in transfer detection only
+            continue
+
         if isinstance(src_cfg, MonobankSourceConfig):
-            apis.append(BankApiConfiguration(
+            source_configs[source_id] = BankApiConfiguration(
                 name=BankApiName(src_cfg.type),
                 token=src_cfg.token,
                 n_retries=src_cfg.retries,
                 remove_cancelled_statements=src_cfg.remove_cancelled,
                 accounts=source_accounts,
-            ))
+            )
         else:
-            apis.append(BankApiConfiguration(
+            source_configs[source_id] = BankApiConfiguration(
                 name=BankApiName(src_cfg.type),
-                token=src_cfg.path,  # filesystem path stored in token field for backward compat
+                token=src_cfg.path,
                 n_retries=0,
                 remove_cancelled_statements=False,
                 accounts=source_accounts,
-            ))
+            )
 
-    # Load mappings for target budget
-    budget_key = schema.pipeline.target_budget
-    budget_cfg = schema.ynab[budget_key]
+    # Build resolved budgets
+    budgets = _build_budgets(budgets_data, all_accounts)
 
-    categories_data = _load_yaml(budget_cfg.mappings.categories)
-    payees_data = _load_yaml(budget_cfg.mappings.payees)
+    return PipelineContext(
+        accounts=all_accounts,
+        source_configs=source_configs,
+        budgets=budgets,
+        pipeline_paths=dict(schema.pipelines),
+    )
 
-    all_accounts = list(accounts.values())
-    mappings = _build_mappings(all_accounts, categories_data, payees_data)
 
-    # Time range
+def load_pipeline(pipeline_path: str) -> list[dict]:
+    """Load pipeline step definitions from YAML."""
+    with open(pipeline_path) as f:
+        raw = yaml.safe_load(f)
+    return raw['steps']
+
+
+def resolve_time_range(time_range_config: dict, timestamp_file: str) -> TimeRange:
+    """Resolve a time_range config dict into a TimeRange domain object."""
+    start = time_range_config['start']
+    end = time_range_config.get('end')
     timestamp_json = None
-    if schema.time_range.use_last_import:
+    if time_range_config.get('use_last_import'):
         try:
-            with open(TIMESTAMP_FILE) as f:
+            with open(timestamp_file) as f:
                 timestamp_json = json.load(f)
         except FileNotFoundError:
             pass
+    return _build_time_range(start, end, timestamp_json)
 
-    time_range = _build_time_range(
-        schema.time_range.start,
-        schema.time_range.end,
-        timestamp_json if schema.time_range.use_last_import else None,
-    )
 
-    return Configuration(
-        merge_transfer_statements=schema.pipeline.merge_transfer_statements,
-        remember_last_import_timestamp=schema.time_range.use_last_import,
-        time_range=time_range,
-        apis=apis,
-        ynab=YnabConfiguration(token=budget_cfg.token, budget_name=budget_cfg.budget),
-        mappings=mappings,
-    )
+def compile_pattern(*regex_str_list: str) -> re.Pattern | None:
+    """Compile multiple regex strings into a single alternation pattern."""
+    if not regex_str_list:
+        return None
+    return re.compile(f'(?:{"|".join(regex_str_list)})')
+
+
+# --- Internal helpers ---
+
+def _validate_source(name: str, data: dict) -> SourceConfig:
+    """Validate a raw source dict against the appropriate Pydantic model."""
+    # Pydantic discriminated union handles type dispatch
+    from pydantic import TypeAdapter
+    adapter = TypeAdapter(SourceConfig)
+    return adapter.validate_python(data)
 
 
 def _load_yaml(path: str):
     with open(path) as f:
         return yaml.safe_load(f)
-
-
-def _compile_pattern(*regex_str_list: str) -> re.Pattern | None:
-    if not regex_str_list:
-        return None
-    return re.compile(f'(?:{"|".join(regex_str_list)})')
 
 
 def _build_time_range(start: str, end: str | None, timestamp_json: dict | None) -> TimeRange:
@@ -123,11 +137,27 @@ def _build_time_range(start: str, end: str | None, timestamp_json: dict | None) 
     )
 
 
-def _build_mappings(
-    all_accounts: list[BankAccountConfiguration],
-    categories_data: list[dict],
-    payees_data: dict[str, list[str]],
-) -> StatementFieldMappings:
+def _build_budgets(
+    budgets_data: dict, all_accounts: dict[str, BankAccountConfiguration],
+) -> dict[str, ResolvedBudget]:
+    budgets = {}
+    for budget_key, budget in budgets_data.items():
+        budget_cfg = BudgetConfig.model_validate(budget)
+        categories_data = _load_yaml(budget_cfg.mappings.categories)
+        payees_data = _load_yaml(budget_cfg.mappings.payees)
+
+        accounts_list = list(all_accounts.values())
+        mappings = _build_mappings(accounts_list, categories_data, payees_data)
+
+        budgets[budget_key] = ResolvedBudget(
+            token=budget_cfg.token,
+            budget_name=budget_cfg.budget,
+            mappings=mappings,
+        )
+    return budgets
+
+
+def _build_mappings(all_accounts, categories_data, payees_data) -> StatementFieldMappings:
     return StatementFieldMappings(
         account_by_transfer_payee=RegexDict(
             (a.transfer_payee, a) for a in all_accounts if a.transfer_payee
@@ -139,13 +169,13 @@ def _build_mappings(
                 for mcc in entry.get('match', {}).get('mcc', [])
             },
             by_payee=RegexDict(
-                (_compile_pattern(*entry['match']['payee']), YnabCategory(**entry['category']))
+                (compile_pattern(*entry['match']['payee']), YnabCategory(**entry['category']))
                 for entry in categories_data
                 if entry.get('match', {}).get('payee')
             ),
         ),
         payee=RegexDict(
-            (_compile_pattern(*regexes), alias)
+            (compile_pattern(*regexes), alias)
             for alias, regexes in payees_data.items()
             if regexes
         ),
