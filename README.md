@@ -21,7 +21,8 @@ pip install $(ls -d api/*) -r ./requirements.txt
 
 ## Configuration
 
-Set up configuration at the corresponding json files at `config` directory.
+Current config submodule is completely outdated and incompatible.
+This will updated soon.
 
 ## Run
 
