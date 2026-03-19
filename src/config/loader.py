@@ -11,8 +11,7 @@ from .schema import (
 )
 from model.configuration import (
     BankAccountConfiguration, BankApiConfiguration, BankApiName,
-    PipelineContext, RegexDict, ResolvedBudget,
-    TimeRange, YnabCategory, YnabCategoryMappings,
+    PipelineContext, ResolvedBudget, TimeRange,
 )
 
 
@@ -69,7 +68,13 @@ def load(config_path: str = 'config/config.yaml') -> PipelineContext:
             )
 
     # Build resolved budgets
-    budgets = _build_budgets(budgets_data)
+    budgets = {}
+    for budget_key, budget in budgets_data.items():
+        budget_cfg = BudgetConfig.model_validate(budget)
+        budgets[budget_key] = ResolvedBudget(
+            token=budget_cfg.token,
+            budget_name=budget_cfg.budget,
+        )
 
     return PipelineContext(
         accounts=all_accounts,
@@ -103,7 +108,11 @@ def resolve_time_range(time_range_config: dict) -> TimeRange:
         with open(start_raw) as f:
             start = f.read().strip()
 
-    return _build_time_range(start, end)
+    time_range_start = datetime.fromisoformat(start)
+    return TimeRange(
+        start=time_range_start,
+        end=datetime.fromisoformat(end) if end else datetime.now(tz=time_range_start.tzinfo),
+    )
 
 
 def compile_pattern(*regex_str_list: str) -> re.Pattern | None:
@@ -125,42 +134,3 @@ def _validate_source(data: dict) -> SourceConfig:
 def _load_yaml(path: str):
     with open(path) as f:
         return yaml.safe_load(f)
-
-
-def _build_time_range(start: str, end: str | None) -> TimeRange:
-    time_range_start = datetime.fromisoformat(start)
-    return TimeRange(
-        start=time_range_start,
-        end=datetime.fromisoformat(end) if end else datetime.now(tz=time_range_start.tzinfo),
-    )
-
-
-def _build_budgets(budgets_data: dict) -> dict[str, ResolvedBudget]:
-    budgets = {}
-    for budget_key, budget in budgets_data.items():
-        budget_cfg = BudgetConfig.model_validate(budget)
-        categories_data = _load_yaml(budget_cfg.mappings.categories)
-        payees_data = _load_yaml(budget_cfg.mappings.payees)
-
-        budgets[budget_key] = ResolvedBudget(
-            token=budget_cfg.token,
-            budget_name=budget_cfg.budget,
-            category_mappings=YnabCategoryMappings(
-                by_mcc={
-                    mcc: YnabCategory(**entry['category'])
-                    for entry in categories_data
-                    for mcc in entry.get('match', {}).get('mcc', [])
-                },
-                by_payee=RegexDict(
-                    (compile_pattern(*entry['match']['payee']), YnabCategory(**entry['category']))
-                    for entry in categories_data
-                    if entry.get('match', {}).get('payee')
-                ),
-            ),
-            payee_mappings=RegexDict(
-                (compile_pattern(*regexes), alias)
-                for alias, regexes in payees_data.items()
-                if regexes
-            ),
-        )
-    return budgets

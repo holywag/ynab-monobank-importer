@@ -7,12 +7,14 @@ Each step is a callable: Iterable[YnabTransaction] -> Iterable[YnabTransaction].
 from collections.abc import Iterable
 from datetime import datetime
 
+import yaml
+
 from model.transaction import YnabTransaction
 from model.configuration import (
-    PipelineContext, YnabAccountRef, RegexDict, StatementFieldMappings,
+    PipelineContext, YnabAccountRef, YnabCategory, RegexDict,
 )
 from sources import BankApiSource
-from config.loader import resolve_time_range
+from config.loader import resolve_time_range, compile_pattern
 from filters.transfer_filter import TransferFilter
 import ynab_api
 
@@ -51,6 +53,50 @@ class DeduplicateTransfersFilter:
         return self._filter(t)
 
 
+# --- Built-in mappers ---
+
+@register_mapper('payee')
+class PayeeMapper:
+    """Maps transaction payee using regex aliases from a YAML file."""
+    def __init__(self, mappings: str, **kwargs):
+        with open(mappings) as f:
+            payees_data = yaml.safe_load(f)
+        self._payee_map = RegexDict(
+            (compile_pattern(*regexes), alias)
+            for alias, regexes in payees_data.items()
+            if regexes
+        )
+
+    def __call__(self, t: YnabTransaction) -> YnabTransaction:
+        mapped = self._payee_map.get(t.description)
+        if mapped:
+            t.payee = mapped
+        return t
+
+
+@register_mapper('categorize')
+class CategorizeMapper:
+    """Maps transaction category using payee/MCC rules from a YAML file."""
+    def __init__(self, mappings: str, **kwargs):
+        with open(mappings) as f:
+            categories_data = yaml.safe_load(f)
+        self._by_payee = RegexDict(
+            (compile_pattern(*entry['match']['payee']), YnabCategory(**entry['category']))
+            for entry in categories_data
+            if entry.get('match', {}).get('payee')
+        )
+        self._by_mcc = {
+            mcc: YnabCategory(**entry['category'])
+            for entry in categories_data
+            for mcc in entry.get('match', {}).get('mcc', [])
+        }
+
+    def __call__(self, t: YnabTransaction) -> YnabTransaction:
+        if not t.category:
+            t.category = self._by_payee.get(t.description) or self._by_mcc.get(t.mcc)
+        return t
+
+
 # TODO: register_mapper('currency_convert') — convert amounts between currencies
 # TODO: register_mapper('adjust_dates') — shift transaction dates
 # TODO: register_filter('by_payee') — filter by payee pattern
@@ -68,9 +114,9 @@ def build_steps(step_dicts: list[dict], ctx: PipelineContext) -> list:
                 case 'read':
                     steps.append(_build_read(ctx, params))
                 case 'filter':
-                    steps.append(_build_filter(ctx, params))
+                    steps.append(_build_filter(params))
                 case 'map':
-                    steps.append(_build_map(ctx, params))
+                    steps.append(_build_map(params))
                 case 'write':
                     steps.append(_build_write(ctx, params))
                 case _:
@@ -92,14 +138,13 @@ def _parse_account_mapping(
 
 def _build_read(ctx: PipelineContext, params: dict):
     """Build a read step that creates transaction streams from sources."""
-    from_mapping = params['from']           # accounts to read from
-    transfer_mapping = params.get('tracking', {})  # transfer-detection-only accounts
+    from_mapping = params['from']
+    tracking_mapping = params.get('tracking', {})
     time_range_cfg = params.get('time_range')
-    mappings_key = params.get('mappings')
 
-    # Parse both from and transfers into ynab mappings
+    # Parse both from and tracking into ynab mappings
     ynab_mapping = _parse_account_mapping(from_mapping, ctx)
-    ynab_mapping.update(_parse_account_mapping(transfer_mapping, ctx))
+    ynab_mapping.update(_parse_account_mapping(tracking_mapping, ctx))
 
     # Build transfer pattern matching from ALL mapped accounts
     all_mapped_accounts = [ctx.accounts[key] for key in ynab_mapping]
@@ -107,30 +152,23 @@ def _build_read(ctx: PipelineContext, params: dict):
         (a.transfer_payee, a) for a in all_mapped_accounts if a.transfer_payee
     )
 
-    # Collect unique source names and read account keys
     read_accounts = set(from_mapping.keys())
     source_names = {key.split('.', 1)[0] for key in read_accounts}
 
     def step(stream: Iterable[YnabTransaction]) -> Iterable[YnabTransaction]:
         tr = resolve_time_range(time_range_cfg) if time_range_cfg else None
-        budget = ctx.budgets[mappings_key] if mappings_key else None
-        mappings = StatementFieldMappings(
-            account_by_transfer_payee=transfer_patterns,
-            category=budget.category_mappings,
-            payee=budget.payee_mappings,
-        )
         for source_name in source_names:
             if source_name not in ctx.source_configs:
-                continue  # tracking source
+                continue
             src = BankApiSource(
-                ctx.source_configs[source_name], mappings, tr,
+                ctx.source_configs[source_name], transfer_patterns, tr,
                 ynab_mapping, read_accounts)
             yield from src.read()
 
     return step
 
 
-def _build_filter(ctx: PipelineContext, params):
+def _build_filter(params):
     """Build a filter step from registry."""
     if isinstance(params, str):
         name, kwargs = params, {}
@@ -146,7 +184,7 @@ def _build_filter(ctx: PipelineContext, params):
     return step
 
 
-def _build_map(ctx: PipelineContext, params):
+def _build_map(params):
     """Build a map step from registry."""
     if isinstance(params, str):
         name, kwargs = params, {}

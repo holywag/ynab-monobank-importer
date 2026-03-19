@@ -4,7 +4,7 @@ import bank_api as bank_api_factory
 from .base import YnabTransactionSource
 from model.transaction import Transaction, YnabTransaction
 from model.configuration import (
-    BankApiConfiguration, StatementFieldMappings, TimeRange, YnabAccountRef,
+    BankApiConfiguration, RegexDict, TimeRange, YnabAccountRef,
 )
 from collections.abc import Iterable
 
@@ -21,16 +21,16 @@ class BankApiSource(YnabTransactionSource):
     def __init__(
         self,
         api_conf: BankApiConfiguration,
-        field_mappings: StatementFieldMappings,
+        transfer_patterns: RegexDict,
         time_range: TimeRange,
         ynab_mapping: dict[str, YnabAccountRef],
         read_accounts: set[str],
     ):
         self.api_conf = api_conf
-        self.field_mappings = field_mappings
+        self.transfer_patterns = transfer_patterns
         self.time_range = time_range
         self.ynab_mapping = ynab_mapping
-        self.read_accounts = read_accounts  # set of "source.account" keys to fetch
+        self.read_accounts = read_accounts
         self._api = None
 
     @property
@@ -50,8 +50,7 @@ class BankApiSource(YnabTransactionSource):
                 account.iban, self.time_range.start, self.time_range.end)
             if raw_trans:
                 for t in raw_trans:
-                    # Detect transfer at bank level
-                    t.transfer_account = self.field_mappings.account_by_transfer_payee.get(
+                    t.transfer_account = self.transfer_patterns.get(
                         t.description, condition=lambda a, acc=account: a is not acc)
                     yield self._to_ynab(t, ynab_ref)
 
@@ -64,11 +63,7 @@ class BankApiSource(YnabTransactionSource):
 
         return YnabTransaction(
             **{field: getattr(t, field) for field in t.__dataclass_fields__},
-            payee=self.field_mappings.payee.get(t.description) or t.description,
-            category=(
-                self.field_mappings.category.by_payee.get(t.description)
-                or self.field_mappings.category.by_mcc.get(t.mcc)
-            ),
+            payee=t.description,
             ynab_account=ynab_account,
             ynab_transfer_account=ynab_transfer,
         )

@@ -65,25 +65,10 @@ class RegexDict:
 
 
 @dataclass
-class YnabCategoryMappings:
-    by_mcc: dict[int, YnabCategory]
-    by_payee: RegexDict  # of YnabCategory
-
-
-@dataclass
-class StatementFieldMappings:
-    account_by_transfer_payee: RegexDict
-    category: YnabCategoryMappings
-    payee: RegexDict  # of payee aliases
-
-
-@dataclass
 class ResolvedBudget:
-    """A YNAB budget with resolved mappings."""
+    """A YNAB budget ready for pipeline use."""
     token: str
     budget_name: str
-    category_mappings: YnabCategoryMappings
-    payee_mappings: RegexDict  # of payee aliases
 
 
 @dataclass

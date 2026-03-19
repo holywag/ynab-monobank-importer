@@ -34,15 +34,9 @@ SourceConfig = Annotated[
 ]
 
 
-class MappingsRef(BaseModel):
-    categories: str  # path to categories YAML
-    payees: str      # path to payees YAML
-
-
 class BudgetConfig(BaseModel):
     token: str
     budget: str
-    mappings: MappingsRef
 
 
 class RootConfig(BaseModel):
