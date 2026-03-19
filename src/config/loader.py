@@ -1,6 +1,5 @@
 """Load and validate YAML configuration, producing PipelineContext."""
 
-import json
 import re
 from datetime import datetime
 
@@ -8,8 +7,7 @@ import yaml
 
 from .schema import (
     RootConfig, BudgetConfig, SourceConfig,
-    MonobankSourceConfig, FilesystemSourceConfig, TrackingSourceConfig,
-    AccountConfig,
+    MonobankSourceConfig, TrackingSourceConfig,
 )
 from model.configuration import (
     BankAccountConfiguration, BankApiConfiguration, BankApiName,
@@ -90,18 +88,24 @@ def load_pipeline(pipeline_path: str) -> list[dict]:
     return raw['steps']
 
 
-def resolve_time_range(time_range_config: dict, timestamp_file: str) -> TimeRange:
-    """Resolve a time_range config dict into a TimeRange domain object."""
-    start = time_range_config['start']
+def resolve_time_range(time_range_config: dict) -> TimeRange:
+    """Resolve a time_range config dict into a TimeRange domain object.
+
+    `start` is either an ISO datetime string or a file path containing one.
+    If it's a file path, the file must exist (raises FileNotFoundError).
+    `end` is an optional ISO datetime string; null means now.
+    """
+    start_raw = time_range_config['start']
     end = time_range_config.get('end')
-    timestamp_json = None
-    if time_range_config.get('use_last_import'):
-        try:
-            with open(timestamp_file) as f:
-                timestamp_json = json.load(f)
-        except FileNotFoundError:
-            pass
-    return _build_time_range(start, end, timestamp_json)
+
+    try:
+        datetime.fromisoformat(start_raw)
+        start = start_raw
+    except (ValueError, TypeError):
+        with open(start_raw) as f:
+            start = f.read().strip()
+
+    return _build_time_range(start, end)
 
 
 def compile_pattern(*regex_str_list: str) -> re.Pattern | None:
@@ -113,7 +117,7 @@ def compile_pattern(*regex_str_list: str) -> re.Pattern | None:
 
 # --- Internal helpers ---
 
-def _validate_source(name: str, data: dict) -> SourceConfig:
+def _validate_source(_name: str, data: dict) -> SourceConfig:
     """Validate a raw source dict against the appropriate Pydantic model."""
     # Pydantic discriminated union handles type dispatch
     from pydantic import TypeAdapter
@@ -126,11 +130,8 @@ def _load_yaml(path: str):
         return yaml.safe_load(f)
 
 
-def _build_time_range(start: str, end: str | None, timestamp_json: dict | None) -> TimeRange:
-    last_import = timestamp_json and datetime.fromisoformat(timestamp_json['last_import'])
+def _build_time_range(start: str, end: str | None) -> TimeRange:
     time_range_start = datetime.fromisoformat(start)
-    if last_import and last_import > time_range_start:
-        time_range_start = last_import
     return TimeRange(
         start=time_range_start,
         end=datetime.fromisoformat(end) if end else datetime.now(tz=time_range_start.tzinfo),

@@ -91,4 +91,3 @@ class PipelineContext:
     source_configs: dict[str, BankApiConfiguration]
     budgets: dict[str, ResolvedBudget]
     pipeline_paths: dict[str, str] = field(default_factory=dict)
-    timestamp_file: str = './config/timestamp.json'

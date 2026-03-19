@@ -5,6 +5,7 @@ Each step is a callable: Iterable[YnabTransaction] -> Iterable[YnabTransaction].
 """
 
 from collections.abc import Iterable
+from datetime import datetime
 
 from model.transaction import YnabTransaction
 from model.configuration import PipelineContext
@@ -82,7 +83,7 @@ def _build_read(ctx: PipelineContext, params: dict):
     mappings_key = params.get('mappings')
 
     def step(stream: Iterable[YnabTransaction]) -> Iterable[YnabTransaction]:
-        tr = resolve_time_range(time_range_cfg, ctx.timestamp_file) if time_range_cfg else None
+        tr = resolve_time_range(time_range_cfg) if time_range_cfg else None
         mappings = ctx.budgets[mappings_key].mappings if mappings_key else None
         for name in source_names:
             src = BankApiSource(ctx.source_configs[name], mappings, tr)
@@ -127,6 +128,7 @@ def _build_write(ctx: PipelineContext, params: dict):
     """Build a write step that sends transactions to a YNAB budget."""
     budget_key = params['to']
     budget = ctx.budgets[budget_key]
+    timestamp_file = params.get('timestamp')
 
     def step(stream: Iterable[YnabTransaction]) -> Iterable[YnabTransaction]:
         ynab = ynab_api.SingleBudgetYnabApiWrapper(
@@ -138,6 +140,10 @@ def _build_write(ctx: PipelineContext, params: dict):
             print(f'-- Imported: {len(result.transaction_ids)}')
         else:
             print('-- Nothing to import')
+        if timestamp_file:
+            with open(timestamp_file, 'w') as f:
+                f.write(datetime.now().astimezone().isoformat())
+            print(f'Saved timestamp to {timestamp_file}')
         return iter(transactions)
 
     return step
