@@ -1,5 +1,6 @@
 """Load and validate YAML configuration, producing PipelineContext."""
 
+import os
 import re
 from datetime import datetime
 
@@ -18,7 +19,7 @@ from model.configuration import (
 def load(config_path: str = 'config/config.yaml') -> PipelineContext:
     """Load YAML config, validate with Pydantic, build PipelineContext."""
     with open(config_path) as f:
-        raw = yaml.safe_load(f)
+        raw = _resolve_env_vars(yaml.safe_load(f))
 
     schema = RootConfig.model_validate(raw)
     sources_data = _load_yaml(schema.sources)
@@ -131,6 +132,26 @@ def _validate_source(data: dict) -> SourceConfig:
     return adapter.validate_python(data)
 
 
+_ENV_VAR_PATTERN = re.compile(r'\$\{(\w+)\}')
+
+
+def _resolve_env_vars(obj):
+    """Recursively resolve ${ENV_VAR} references in strings."""
+    if isinstance(obj, str):
+        def _replace(match):
+            var = match.group(1)
+            value = os.environ.get(var)
+            if value is None:
+                raise ValueError(f'Environment variable ${{{var}}} is not set')
+            return value
+        return _ENV_VAR_PATTERN.sub(_replace, obj)
+    if isinstance(obj, dict):
+        return {k: _resolve_env_vars(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_resolve_env_vars(v) for v in obj]
+    return obj
+
+
 def _load_yaml(path: str):
     with open(path) as f:
-        return yaml.safe_load(f)
+        return _resolve_env_vars(yaml.safe_load(f))
