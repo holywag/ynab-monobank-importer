@@ -1,10 +1,9 @@
 from .fs import FilesystemBankApiEngine
+from utils.exchange_rates import init_rates_cache, Currency
 import tabula
 import pandas as pd
 import re
 from pathlib import Path
-from datetime import datetime
-import conv
 
 
 class Engine(FilesystemBankApiEngine):
@@ -20,7 +19,7 @@ class Engine(FilesystemBankApiEngine):
 
     def parse_document(self, f: Path) -> pd.DataFrame:
         # Columns are located at 1.1, 1.51, 4.7, 5.77, 6.95 inches from the left side.
-        df = tabula.read_pdf(f, pages='all', lattice=False, multiple_tables=False, 
+        df = tabula.read_pdf(f, pages='all', lattice=False, multiple_tables=False,
                              columns=[13.3, 18.3, 57.1, 70.1, 84.4], relative_columns=True,
                              stream=True, guess=False)[0]
         df.columns=['data_lanc', 'data_valor', 'descritivo', 'debito', 'credito', 'saldo']
@@ -32,7 +31,7 @@ class Engine(FilesystemBankApiEngine):
         df = df.drop(       # 4. Finally drop them.
             sum(            # 3. Concat all ranges into a single sequence.
                 map(        # 2. Expand indexes into ranges of indexes of rows between them.
-                    lambda r: list(range(r[0], r[1] + 1)), 
+                    lambda r: list(range(r[0], r[1] + 1)),
                     zip(    # 1. Collect pairs of indexes indicating page breaks.
                         df[df.descritivo == 'A TRANSPORTAR'].index, # Appears before page break.
                         df[df.descritivo == 'TRANSPORTE'].index,    # Appears after page break.
@@ -46,11 +45,11 @@ class Engine(FilesystemBankApiEngine):
         return df
 
     def post_process(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Convert EUR to UAH. 
+        """Convert EUR to UAH.
         FIXME: Remove this code once budget migration to EUR is done.
         """
         dates = sorted(df.data_lanc.dt.date.unique())
-        rates = df.data_lanc.map(conv.init_rates_cache(conv.Currency.EUR, dates[0], dates[-1]))
+        rates = df.data_lanc.map(init_rates_cache(Currency.EUR, dates[0], dates[-1]))
         converted_values = (df[['debito', 'credito']]
             .apply(lambda col: col.str.replace(' ', '', regex=False))
             .astype(float)
