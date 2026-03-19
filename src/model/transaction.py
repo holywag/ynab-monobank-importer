@@ -15,13 +15,15 @@ class Transaction:
     comment: str = None
     mcc: int = None
     id: str = None
+    transfer_account: conf.BankAccountConfiguration = None
 
 
 @dataclass
 class YnabTransaction(Transaction):
     payee: str = None
-    transfer_account: conf.BankAccountConfiguration = None
     category: conf.YnabCategory = None
+    ynab_account: conf.YnabAccountRef = None
+    ynab_transfer_account: conf.YnabAccountRef = None
 
 
 @dataclass

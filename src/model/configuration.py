@@ -15,8 +15,8 @@ class TimeRange:
 
 @dataclass
 class BankAccountConfiguration:
-    enabled: bool
-    ynab_name: str  # TODO: move to pipeline/sink config
+    name: str           # account key in YAML (unique within source)
+    source_name: str    # parent source key in YAML
     iban: str | None
     transfer_payee: re.Pattern | None
 
@@ -35,7 +35,8 @@ class BankApiName(StrEnum):
 
 @dataclass
 class BankApiConfiguration:
-    name: BankApiName
+    type: BankApiName    # bank type (was 'name')
+    name: str            # source key in YAML (e.g. 'mono_main')
     token: str
     n_retries: int
     remove_cancelled_statements: bool
@@ -78,16 +79,24 @@ class StatementFieldMappings:
 
 @dataclass
 class ResolvedBudget:
-    """A YNAB budget with resolved mappings, ready for pipeline use."""
+    """A YNAB budget with resolved mappings."""
     token: str
     budget_name: str
-    mappings: StatementFieldMappings
+    category_mappings: YnabCategoryMappings
+    payee_mappings: RegexDict  # of payee aliases
+
+
+@dataclass
+class YnabAccountRef:
+    """Reference to a YNAB account within a specific budget."""
+    name: str
+    budget: ResolvedBudget
 
 
 @dataclass
 class PipelineContext:
     """Holds all resolved config data available to pipeline steps."""
-    accounts: dict[str, BankAccountConfiguration]
+    accounts: dict[str, BankAccountConfiguration]  # "source.account" -> acc
     source_configs: dict[str, BankApiConfiguration]
     budgets: dict[str, ResolvedBudget]
     pipeline_paths: dict[str, str] = field(default_factory=dict)

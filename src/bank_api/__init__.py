@@ -3,7 +3,7 @@ from .data_source import BankApi, mono, pumb, abank, sensebank, privatbank, mill
 from .data_source.fs import FilesystemBankApi
 
 def create(c: conf.BankApiConfiguration) -> BankApi:
-    match c.name:
+    match c.type:
         case conf.BankApiName.MONO:
             return mono.Api(c)
         case conf.BankApiName.PUMB_DEBIT:

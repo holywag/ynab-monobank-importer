@@ -32,7 +32,7 @@ class FilesystemBankApi(BankApi):
     def request_statements_for_time_range(self, iban: str, start: datetime, end: datetime) -> Iterable[Transaction]:
         account = self.accounts.get(iban)
         if not account:
-            raise UnknownIban(self.conf.name, iban)
+            raise UnknownIban(self.conf.type, iban)
         rglob = list((Path(self.conf.token) / account.iban).rglob(self.engine.glob_pattern))
         if len(rglob) == 0:
             return []

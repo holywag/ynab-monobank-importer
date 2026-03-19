@@ -16,10 +16,10 @@ class Api(BankApi):
     def request_statements_for_time_range(self, iban: str, start: datetime, end: datetime) -> Iterable[Transaction]:
         account_id = self.__account_id_by_iban.get(iban)
         if not account_id:
-            raise UnknownIban(self.conf.name, iban)
+            raise UnknownIban(self.conf.type, iban)
         account = self.accounts.get(iban)
         if not account:
-            raise MissingAccountConfiguration(self.conf.name, iban)
+            raise MissingAccountConfiguration(self.conf.type, iban)
         raw_statements = self.mono_api.request_statements_for_time_range(account_id, start, end)
         if self.conf.remove_cancelled_statements:
             raw_statements = filter(CancelFilter(raw_statements), raw_statements)

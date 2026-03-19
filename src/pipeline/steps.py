@@ -8,7 +8,9 @@ from collections.abc import Iterable
 from datetime import datetime
 
 from model.transaction import YnabTransaction
-from model.configuration import PipelineContext
+from model.configuration import (
+    PipelineContext, YnabAccountRef, RegexDict, StatementFieldMappings,
+)
 from sources import BankApiSource
 from config.loader import resolve_time_range
 from filters.transfer_filter import TransferFilter
@@ -76,17 +78,53 @@ def build_steps(step_dicts: list[dict], ctx: PipelineContext) -> list:
     return steps
 
 
+def _parse_account_mapping(
+    mapping_dict: dict[str, str], ctx: PipelineContext,
+) -> dict[str, YnabAccountRef]:
+    """Parse 'source.account: budget.ynab_name' mapping into YnabAccountRef dict."""
+    result = {}
+    for source_account, budget_ynab in mapping_dict.items():
+        budget_key, ynab_name = budget_ynab.split('.', 1)
+        result[source_account] = YnabAccountRef(
+            name=ynab_name, budget=ctx.budgets[budget_key])
+    return result
+
+
 def _build_read(ctx: PipelineContext, params: dict):
     """Build a read step that creates transaction streams from sources."""
-    source_names = params['from']
+    from_mapping = params['from']           # accounts to read from
+    transfer_mapping = params.get('tracking', {})  # transfer-detection-only accounts
     time_range_cfg = params.get('time_range')
     mappings_key = params.get('mappings')
 
+    # Parse both from and transfers into ynab mappings
+    ynab_mapping = _parse_account_mapping(from_mapping, ctx)
+    ynab_mapping.update(_parse_account_mapping(transfer_mapping, ctx))
+
+    # Build transfer pattern matching from ALL mapped accounts
+    all_mapped_accounts = [ctx.accounts[key] for key in ynab_mapping]
+    transfer_patterns = RegexDict(
+        (a.transfer_payee, a) for a in all_mapped_accounts if a.transfer_payee
+    )
+
+    # Collect unique source names and read account keys
+    read_accounts = set(from_mapping.keys())
+    source_names = {key.split('.', 1)[0] for key in read_accounts}
+
     def step(stream: Iterable[YnabTransaction]) -> Iterable[YnabTransaction]:
         tr = resolve_time_range(time_range_cfg) if time_range_cfg else None
-        mappings = ctx.budgets[mappings_key].mappings if mappings_key else None
-        for name in source_names:
-            src = BankApiSource(ctx.source_configs[name], mappings, tr)
+        budget = ctx.budgets[mappings_key] if mappings_key else None
+        mappings = StatementFieldMappings(
+            account_by_transfer_payee=transfer_patterns,
+            category=budget.category_mappings,
+            payee=budget.payee_mappings,
+        )
+        for source_name in source_names:
+            if source_name not in ctx.source_configs:
+                continue  # tracking source
+            src = BankApiSource(
+                ctx.source_configs[source_name], mappings, tr,
+                ynab_mapping, read_accounts)
             yield from src.read()
 
     return step

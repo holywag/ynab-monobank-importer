@@ -92,8 +92,8 @@ class YnabApiWrapper:
         category_id, payee_id = None, None
         if t.category:
             category_id = self.get_category_id_by_name(budget_id, t.category.group, t.category.name)
-        if t.transfer_account:
-            payee_id = self.get_transfer_payee_id_by_account_name(budget_id, t.transfer_account.ynab_name)
+        if t.ynab_transfer_account:
+            payee_id = self.get_transfer_payee_id_by_account_name(budget_id, t.ynab_transfer_account.name)
         memo = t.comment or ''
         if not category_id and not payee_id and t.payee != t.description:
             memo = f'{memo} {t.description} {t.mcc or ""}'.strip()
@@ -104,7 +104,7 @@ class YnabApiWrapper:
                 saved_sub = self.__NewTransaction(budget_id, subtr).to_dict()
                 subtrs.append(ynab.SaveSubTransaction.from_dict(saved_sub))
         return ynab.NewTransaction(
-            account_id=self.get_account_id_by_name(budget_id, t.account.ynab_name),
+            account_id=self.get_account_id_by_name(budget_id, t.ynab_account.name),
             date=t.time.date(),
             amount=t.amount*10,
             payee_name=t.payee[:50],
