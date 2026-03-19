@@ -40,6 +40,6 @@ class BudgetConfig(BaseModel):
 
 
 class RootConfig(BaseModel):
-    sources: str           # path to sources YAML
-    budgets: str           # path to budgets YAML
-    pipelines: dict[str, str]  # name -> path to pipeline YAML
+    sources: str | dict                   # path to YAML or inline dict
+    budgets: str | dict[str, BudgetConfig]  # path to YAML or inline dict
+    pipelines: dict[str, str]             # name -> path to pipeline YAML

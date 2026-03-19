@@ -25,8 +25,8 @@ def load(config_path: str = 'config/config.yaml') -> PipelineContext:
         raw = _resolve_env_vars(yaml.safe_load(f))
 
     schema = RootConfig.model_validate(raw)
-    sources_data = _load_yaml(schema.sources)
-    budgets_data = _load_yaml(schema.budgets)
+    sources_data = _load_yaml(schema.sources) if isinstance(schema.sources, str) else schema.sources
+    budgets_data = _load_yaml(schema.budgets) if isinstance(schema.budgets, str) else schema.budgets
 
     # Validate sources against schema
     sources_validated: dict[str, SourceConfig] = {
@@ -74,7 +74,7 @@ def load(config_path: str = 'config/config.yaml') -> PipelineContext:
     # Build resolved budgets
     budgets = {}
     for budget_key, budget in budgets_data.items():
-        budget_cfg = BudgetConfig.model_validate(budget)
+        budget_cfg = budget if isinstance(budget, BudgetConfig) else BudgetConfig.model_validate(budget)
         budgets[budget_key] = ResolvedBudget(
             token=budget_cfg.token,
             budget_name=budget_cfg.budget,
