@@ -1,4 +1,4 @@
-from model.transaction import YnabTransaction, YnabTransactionGroup
+from model.transaction import YnabTransaction
 
 class TransferFilter:
     """Filter object that prevents duplication of transfers between two YNAB accounts.
@@ -10,14 +10,14 @@ class TransferFilter:
         self.transfer_statements = []
 
     def __make_transfer_id(t: YnabTransaction, forward: bool):
-        src = f'{t.ynab_account.budget.budget_name}.{t.ynab_account.name}'
-        dst = f'{t.ynab_transfer_account.budget.budget_name}.{t.ynab_transfer_account.name}'
-        amount = t.amount
-        date = t.time.strftime('%Y-%m-%d')
+        src = t.detail.account_id
+        dst = t.detail.transfer_account_id
+        amount = t.detail.amount
+        date = str(t.detail.var_date)
         return f'{date}_{src}_{dst}_{amount}' if forward else f'{date}_{dst}_{src}_{-amount}'
 
     def __call__(self, t: YnabTransaction):
-        if t.ynab_transfer_account and not isinstance(t, YnabTransactionGroup):
+        if t.detail.transfer_account_id:
             try:
                 self.transfer_statements.remove(TransferFilter.__make_transfer_id(t, False))
                 return False

@@ -1,4 +1,4 @@
-from model.transaction import Transaction
+from model.transaction import BankTransaction
 from abc import ABC, abstractmethod
 from datetime import datetime
 from collections.abc import Iterable
@@ -21,5 +21,5 @@ class BankApi(ABC):
     """
 
     @abstractmethod
-    def request_statements_for_time_range(self, iban: str, start: datetime, end: datetime) -> Iterable[Transaction]:
+    def request_statements_for_time_range(self, iban: str, start: datetime, end: datetime) -> Iterable[BankTransaction]:
         pass

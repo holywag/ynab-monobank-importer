@@ -1,4 +1,4 @@
-from . import BankApi, Transaction, UnknownIban
+from . import BankApi, BankTransaction, UnknownIban
 from model.configuration import BankApiConfiguration
 from pathlib import Path
 import pandas as pd
@@ -29,7 +29,7 @@ class FilesystemBankApi(BankApi):
         self.accounts = { a.iban: a for a in conf.accounts if a.iban }
         self.engine = engine
     
-    def request_statements_for_time_range(self, iban: str, start: datetime, end: datetime) -> Iterable[Transaction]:
+    def request_statements_for_time_range(self, iban: str, start: datetime, end: datetime) -> Iterable[BankTransaction]:
         account = self.accounts.get(iban)
         if not account:
             raise UnknownIban(self.conf.type, iban)
@@ -39,10 +39,10 @@ class FilesystemBankApi(BankApi):
         df = pd.concat(self.engine.parse_document(f) for f in rglob)
         df = self.engine.post_process(df)
         df.drop_duplicates(inplace=True, keep='last')
-        def parse_row(r: pd.Series) -> Transaction:
+        def parse_row(r: pd.Series) -> BankTransaction:
             # TODO: improve interface of parse_row: control Transaction fields
             fields = self.engine.parse_row(r)
             # TODO: determine the real timezone
-            return Transaction(**(fields | { 'account': account, 'time': fields['time'].astimezone(start.tzinfo) }))
+            return BankTransaction(**(fields | { 'account': account, 'time': fields['time'].astimezone(start.tzinfo) }))
         df = df.apply(parse_row, axis=1, result_type='reduce')
         return filter(lambda t: start <= t.time <= end, df)

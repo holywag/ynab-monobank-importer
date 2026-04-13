@@ -10,13 +10,11 @@ from datetime import datetime
 import yaml
 
 from model.transaction import YnabTransaction
-from model.configuration import (
-    PipelineContext, YnabAccountRef, YnabCategory, RegexDict,
-)
+from model.configuration import PipelineContext, YnabAccountRef, RegexDict
 from sources import BankApiSource
 from config.loader import resolve_time_range, compile_pattern
 from filters.transfer_filter import TransferFilter
-import ynab_api, ynab
+import ynab_api
 
 
 # --- Registry ---
@@ -68,51 +66,58 @@ class PayeeMapper:
         )
 
     def __call__(self, t: YnabTransaction) -> YnabTransaction:
-        mapped = self._payee_map.get(t.description)
+        payee_name = t.detail.payee_name or ''
+        mapped = self._payee_map.get(payee_name)
         if mapped:
-            t.payee = mapped
+            t.detail.payee_name = mapped
         return t
 
 
 @register_mapper('categorize')
 class CategorizeMapper:
-    """Maps transaction category using payee/MCC rules from a YAML file."""
-    def __init__(self, mappings: str, **kwargs):
+    """Maps transaction category using payee/MCC rules from a YAML file.
+    Resolves category_id via YNAB API."""
+    def __init__(self, mappings: str, budget: str, ctx: PipelineContext, **kwargs):
         with open(mappings) as f:
             categories_data = yaml.safe_load(f)
         self._by_payee = RegexDict(
-            (compile_pattern(*entry['match']['payee']), YnabCategory(**entry['category']))
+            (compile_pattern(*entry['match']['payee']), entry['category'])
             for entry in categories_data
             if entry.get('match', {}).get('payee')
         )
         self._by_mcc = {
-            mcc: YnabCategory(**entry['category'])
+            mcc: entry['category']
             for entry in categories_data
             for mcc in entry.get('match', {}).get('mcc', [])
         }
+        # Pre-fetch category tree for ID resolution
+        budget_cfg = ctx.budgets[budget]
+        self._ynab = ynab_api.SingleBudgetYnabApiWrapper(
+            ynab_api.YnabApiWrapper(budget_cfg.token), budget_cfg.budget_name)
 
     def __call__(self, t: YnabTransaction) -> YnabTransaction:
-        if not t.category:
-            t.category = self._by_payee.get(t.description) or self._by_mcc.get(t.mcc)
+        if not t.detail.category_id:
+            payee_name = t.detail.payee_name or ''
+            mcc = t.bank_transaction.mcc if t.bank_transaction else None
+            cat = self._by_payee.get(payee_name) or (self._by_mcc.get(mcc) if mcc else None)
+            if cat:
+                t.detail.category_id = self._ynab.get_category_id_by_name(cat['group'], cat['name'])
         return t
 
 
 @register_mapper('change_date')
-class ChangeDataMapper:
+class ChangeDateMapper:
     """Alters transaction date."""
-    def __init__(self, year = None, **kwargs):
+    def __init__(self, year=None, **kwargs):
         self.year = year
-    
-    def __call__(self, t: ynab.TransactionDetail) -> YnabTransaction:
+
+    def __call__(self, t: YnabTransaction) -> YnabTransaction:
         if self.year:
-            t.var_date = t.var_date.replace(year=self.year)
+            t.detail.var_date = t.detail.var_date.replace(year=self.year)
         return t
-        
+
 
 # TODO: register_mapper('currency_convert') — convert amounts between currencies
-# TODO: register_mapper('adjust_dates') — shift transaction dates
-# TODO: register_filter('by_payee') — filter by payee pattern
-# TODO: register_filter('by_category') — filter by category
 
 
 # --- Step builders ---
@@ -128,7 +133,7 @@ def build_steps(step_dicts: list[dict], ctx: PipelineContext) -> list:
                 case 'filter':
                     steps.append(_build_filter(params))
                 case 'map':
-                    steps.append(_build_map(params))
+                    steps.append(_build_map(ctx, params))
                 case 'write':
                     steps.append(_build_write(ctx, params))
                 case _:
@@ -147,8 +152,9 @@ def _parse_account_mapping(
             name=ynab_name, budget=ctx.budgets[budget_key])
     return result
 
+
 def _build_read_from_source(ctx: PipelineContext, params: dict):
-    """Build a read step that creates transaction streams from sources."""
+    """Build a read step that creates transaction streams from bank sources."""
     from_mapping = params['from_source']
     tracking_mapping = params.get('tracking', {})
     time_range_cfg = params.get('time_range')
@@ -178,18 +184,19 @@ def _build_read_from_source(ctx: PipelineContext, params: dict):
 
     return step
 
+
 def _build_read_from_budget(ctx: PipelineContext, params: dict):
-    """Build a read step that creates transaction streams from budget."""
+    """Build a read step that creates transaction streams from a YNAB budget."""
     time_range_cfg = params.get('time_range')
-        
+
     def step(stream: Iterable[YnabTransaction]) -> Iterable[YnabTransaction]:
         tr = resolve_time_range(time_range_cfg) if time_range_cfg else None
         for budget_key, accounts in params['from_budget'].items():
             budget = ctx.budgets[budget_key]
-            ynab = ynab_api.SingleBudgetYnabApiWrapper(
+            wrapper = ynab_api.SingleBudgetYnabApiWrapper(
                 ynab_api.YnabApiWrapper(budget.token), budget.budget_name)
             for acc in accounts:
-                yield from ynab.get_transactions_by_account(acc, tr.start.date())
+                yield from wrapper.get_transactions_by_account(acc, tr.start.date())
 
     return step
 
@@ -201,7 +208,7 @@ def _build_read(ctx: PipelineContext, params: dict):
     elif 'from_budget' in params:
         return _build_read_from_budget(ctx, params)
     else:
-        raise Exception(f'Cannot recoginze read params {params.keys()}')
+        raise ValueError(f'Cannot recognize read params: {list(params.keys())}')
 
 
 def _build_filter(params):
@@ -220,7 +227,7 @@ def _build_filter(params):
     return step
 
 
-def _build_map(params):
+def _build_map(ctx: PipelineContext, params):
     """Build a map step from registry."""
     if isinstance(params, str):
         name, kwargs = params, {}
@@ -228,6 +235,7 @@ def _build_map(params):
         kwargs = dict(params)
         name = kwargs.pop('type')
 
+    kwargs['ctx'] = ctx
     map_fn = _MAPPERS[name](**kwargs)
 
     def step(stream: Iterable[YnabTransaction]) -> Iterable[YnabTransaction]:
@@ -237,25 +245,39 @@ def _build_map(params):
 
 
 def _build_write(ctx: PipelineContext, params: dict):
-    """Build a write step that sends transactions to a YNAB budget."""
+    """Build a write step. Creates new or updates existing transactions."""
     budget_key = params['to']
     budget = ctx.budgets[budget_key]
     timestamp_file = params.get('timestamp')
 
     def step(stream: Iterable[YnabTransaction]) -> Iterable[YnabTransaction]:
-        ynab = ynab_api.SingleBudgetYnabApiWrapper(
+        wrapper = ynab_api.SingleBudgetYnabApiWrapper(
             ynab_api.YnabApiWrapper(budget.token), budget.budget_name)
         transactions = list(stream)
-        print(f'Sending {len(transactions)} transactions to "{budget.budget_name}"...')
-        result = ynab.update_transactions(transactions)
-        if result:
-            print(f'-- Imported: {len(result.transaction_ids)}')
-        else:
+
+        to_create = [t for t in transactions if not t.detail.id]  # empty or None
+        to_update = [t for t in transactions if t.detail.id]
+
+        if to_create:
+            print(f'Creating {len(to_create)} transactions in "{budget.budget_name}"...')
+            result = wrapper.create_transactions(to_create)
+            if result:
+                print(f'-- Created: {len(result.transaction_ids)}')
+
+        if to_update:
+            print(f'Updating {len(to_update)} transactions in "{budget.budget_name}"...')
+            result = wrapper.update_transactions(to_update)
+            if result:
+                print(f'-- Updated: {len(result.transaction_ids)}')
+
+        if not to_create and not to_update:
             print('-- Nothing to import')
+
         if timestamp_file:
             with open(timestamp_file, 'w') as f:
                 f.write(datetime.now().astimezone().isoformat())
             print(f'Saved timestamp to {timestamp_file}')
+
         return iter(transactions)
 
     return step

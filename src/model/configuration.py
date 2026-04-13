@@ -43,12 +43,6 @@ class BankApiConfiguration:
     accounts: list[BankAccountConfiguration]
 
 
-@dataclass
-class YnabCategory:
-    name: str
-    group: str
-
-
 class RegexDict:
     """Dict-like collection whose keys are regular expressions."""
 

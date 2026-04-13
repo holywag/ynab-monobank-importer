@@ -1,12 +1,14 @@
-"""Pure transaction data classes — no conversion logic."""
+"""Transaction data classes."""
 
 import model.configuration as conf
 from datetime import datetime
 from dataclasses import dataclass, KW_ONLY
+from ynab import TransactionDetail
 
 
 @dataclass
-class Transaction:
+class BankTransaction:
+    """Raw transaction from a bank API. Internal to bank sources."""
     account: conf.BankAccountConfiguration
     time: datetime
     amount: int
@@ -19,17 +21,12 @@ class Transaction:
 
 
 @dataclass
-class YnabTransaction(Transaction):
-    payee: str = None
-    category: conf.YnabCategory = None
-    ynab_account: conf.YnabAccountRef = None
-    ynab_transfer_account: conf.YnabAccountRef = None
+class YnabTransaction:
+    """Unified transaction type for the pipeline.
 
-
-@dataclass
-class YnabTransactionGroup(YnabTransaction):
-    subtransactions: list[YnabTransaction] = None
-
-    @classmethod
-    def from_YnabTransaction(cls, t: YnabTransaction):
-        return cls(**{field: getattr(t, field) for field in t.__dataclass_fields__}, subtransactions=[t])
+    Uses ynab.TransactionDetail as primary data store.
+    Optionally references the originating BankTransaction for bank-specific
+    fields (mcc, original description) not present in TransactionDetail.
+    """
+    detail: TransactionDetail
+    bank_transaction: BankTransaction = None

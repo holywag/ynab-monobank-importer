@@ -1,5 +1,5 @@
 from .cancel_filter import CancelFilter
-from .. import BankApi, Transaction, UnknownIban, MissingAccountConfiguration
+from .. import BankApi, BankTransaction, UnknownIban, MissingAccountConfiguration
 from model.configuration import BankApiConfiguration
 from monobank import MonobankApi, ApiClient
 from datetime import datetime
@@ -13,7 +13,7 @@ class Api(BankApi):
         self.__account_id_by_iban = { a['iban']: a['id']
             for a in self.mono_api.request_client_info()['accounts'] }
 
-    def request_statements_for_time_range(self, iban: str, start: datetime, end: datetime) -> Iterable[Transaction]:
+    def request_statements_for_time_range(self, iban: str, start: datetime, end: datetime) -> Iterable[BankTransaction]:
         account_id = self.__account_id_by_iban.get(iban)
         if not account_id:
             raise UnknownIban(self.conf.type, iban)
@@ -23,7 +23,7 @@ class Api(BankApi):
         raw_statements = self.mono_api.request_statements_for_time_range(account_id, start, end)
         if self.conf.remove_cancelled_statements:
             raw_statements = filter(CancelFilter(raw_statements), raw_statements)
-        return map(lambda s: Transaction(
+        return map(lambda s: BankTransaction(
             account=self.accounts[iban],
             id=s['id'],
             time=datetime.fromtimestamp(int(s['time'])),
