@@ -16,7 +16,7 @@ from model.configuration import (
 from sources import BankApiSource
 from config.loader import resolve_time_range, compile_pattern
 from filters.transfer_filter import TransferFilter
-import ynab_api
+import ynab_api, ynab
 
 
 # --- Registry ---
@@ -97,6 +97,18 @@ class CategorizeMapper:
         return t
 
 
+@register_mapper('change_date')
+class ChangeDataMapper:
+    """Alters transaction date."""
+    def __init__(self, year = None, **kwargs):
+        self.year = year
+    
+    def __call__(self, t: ynab.TransactionDetail) -> YnabTransaction:
+        if self.year:
+            t.var_date = t.var_date.replace(year=self.year)
+        return t
+        
+
 # TODO: register_mapper('currency_convert') — convert amounts between currencies
 # TODO: register_mapper('adjust_dates') — shift transaction dates
 # TODO: register_filter('by_payee') — filter by payee pattern
@@ -135,10 +147,9 @@ def _parse_account_mapping(
             name=ynab_name, budget=ctx.budgets[budget_key])
     return result
 
-
-def _build_read(ctx: PipelineContext, params: dict):
+def _build_read_from_source(ctx: PipelineContext, params: dict):
     """Build a read step that creates transaction streams from sources."""
-    from_mapping = params['from']
+    from_mapping = params['from_source']
     tracking_mapping = params.get('tracking', {})
     time_range_cfg = params.get('time_range')
 
@@ -166,6 +177,31 @@ def _build_read(ctx: PipelineContext, params: dict):
             yield from src.read()
 
     return step
+
+def _build_read_from_budget(ctx: PipelineContext, params: dict):
+    """Build a read step that creates transaction streams from budget."""
+    time_range_cfg = params.get('time_range')
+        
+    def step(stream: Iterable[YnabTransaction]) -> Iterable[YnabTransaction]:
+        tr = resolve_time_range(time_range_cfg) if time_range_cfg else None
+        for budget_key, accounts in params['from_budget'].items():
+            budget = ctx.budgets[budget_key]
+            ynab = ynab_api.SingleBudgetYnabApiWrapper(
+                ynab_api.YnabApiWrapper(budget.token), budget.budget_name)
+            for acc in accounts:
+                yield from ynab.get_transactions_by_account(acc, tr.start.date())
+
+    return step
+
+
+def _build_read(ctx: PipelineContext, params: dict):
+    """Build a read step that creates transaction stream."""
+    if 'from_source' in params:
+        return _build_read_from_source(ctx, params)
+    elif 'from_budget' in params:
+        return _build_read_from_budget(ctx, params)
+    else:
+        raise Exception(f'Cannot recoginze read params {params.keys()}')
 
 
 def _build_filter(params):
@@ -211,7 +247,7 @@ def _build_write(ctx: PipelineContext, params: dict):
             ynab_api.YnabApiWrapper(budget.token), budget.budget_name)
         transactions = list(stream)
         print(f'Sending {len(transactions)} transactions to "{budget.budget_name}"...')
-        result = ynab.create_transactions(transactions)
+        result = ynab.update_transactions(transactions)
         if result:
             print(f'-- Imported: {len(result.transaction_ids)}')
         else:

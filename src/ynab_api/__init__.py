@@ -83,9 +83,27 @@ class YnabApiWrapper:
             budget_id, ynab.PostTransactionsWrapper(transactions=data))
         return response.data
 
+    def update_transactions(self, budget_id, transactions : ynab.TransactionsResponseData):
+        if not transactions:
+            return None
+        data = [ynab.SaveTransactionWithIdOrImportId.from_dict(t.to_dict()) for t in transactions]
+        transactions_api = ynab.TransactionsApi(self.__client)
+        response = transactions_api.update_transactions(
+            budget_id, ynab.PatchTransactionsWrapper(transactions=data))
+        print(response)
+        # TODO: commit a fix of _response_types_map in ynab's update_transactions method
+        return response.data
+
     def get_transactions(self, budget_id):
         transactions_api = ynab.TransactionsApi(self.__client)
         response = transactions_api.get_transactions(budget_id)
+        return response.data.transactions
+    
+    def get_transactions_by_account(self, budget_id, account_name, since_date):
+        transactions_api = ynab.TransactionsApi(self.__client)
+        response = transactions_api.get_transactions_by_account(
+            budget_id, self.get_account_id_by_name(budget_id, account_name), since_date)
+        print(response)
         return response.data.transactions
 
     def __NewTransaction(self, budget_id: str, t: YnabTransaction|YnabTransactionGroup) -> ynab.NewTransaction:
@@ -133,5 +151,11 @@ class SingleBudgetYnabApiWrapper:
     def create_transactions(self, transactions: Iterable[YnabTransaction|YnabTransactionGroup]):
         return self.ynab_api.create_transactions(self.budget.id, transactions)
 
+    def update_transactions(self, transactions):
+        return self.ynab_api.update_transactions(self.budget.id, transactions)
+
     def get_transactions(self):
         return self.ynab_api.get_transactions(self.budget.id)
+
+    def get_transactions_by_account(self, account_name, since_date):
+        return self.ynab_api.get_transactions_by_account(self.budget.id, account_name, since_date)
