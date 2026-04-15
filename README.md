@@ -30,7 +30,7 @@ Everything is driven by a **pipeline** defined in YAML. A pipeline is a sequence
 # config/pipelines/daily_import.yaml
 steps:
   - read:
-      from:
+      from_source:
         monobank.checking: my_budget.Checking Account
       time_range:
         start: "2025-01-01T00:00:00+02:00"
@@ -136,7 +136,7 @@ tracking:
 
 ```yaml
 - read:
-    from:                                         # accounts to fetch
+    from_source:                                  # accounts to fetch
       monobank.checking: my_budget.Checking       # source.account: budget.ynab_account
     tracking:                                     # transfer detection only (not fetched)
       monobank.savings: my_budget.Savings
