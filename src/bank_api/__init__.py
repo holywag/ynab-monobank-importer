@@ -6,10 +6,8 @@ def create(c: conf.BankApiConfiguration) -> BankApi:
     match c.type:
         case conf.BankApiName.MONO:
             return mono.Api(c)
-        case conf.BankApiName.PUMB_DEBIT:
-            return FilesystemBankApi(c, pumb.Engine(credit=False))
-        case conf.BankApiName.PUMB_CREDIT:
-            return FilesystemBankApi(c, pumb.Engine(credit=True))
+        case conf.BankApiName.PUMB:
+            return FilesystemBankApi(c, pumb.Engine())
         case conf.BankApiName.SENSE:
             return FilesystemBankApi(c, sensebank.Engine())
         case conf.BankApiName.ABANK:
