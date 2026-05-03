@@ -90,6 +90,7 @@ class YnabApiWrapper:
         transactions_api = ynab.TransactionsApi(self.__client)
         response = transactions_api.update_transactions(
             budget_id, ynab.PatchTransactionsWrapper(transactions=data))
+        # TODO: fix _response_types_map in transactions_api.update_transactions()
         return response.data
 
     def get_transactions(self, budget_id) -> list[YnabTransaction]:
