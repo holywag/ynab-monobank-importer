@@ -36,13 +36,6 @@ def init_rates_cache(currency: Currency, date_start: dt.date, date_stop: dt.date
     except (FileNotFoundError, json.JSONDecodeError):
         pass
 
-    if cache:
-        sorted_cache_dates = sorted(cache)
-        if date_start in cache:
-            date_start = sorted_cache_dates[-1]
-        if date_stop in cache:
-            date_stop = sorted_cache_dates[0]
-
     print(f'Ex rates cache: requesting rates from {date_start} to {date_stop}')
     cache |= _request_ex_rates(date_start, date_stop, currency)
     with open(RATES_CACHE_FILE, 'w') as f:
