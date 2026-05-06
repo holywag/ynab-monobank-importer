@@ -13,7 +13,7 @@ class Pipeline:
     """Runs a sequence of steps over a transaction stream.
 
     Each step receives and returns an iterable of YnabTransactions.
-    Steps are lazy (generator-based) except write steps which materialize.
+    Steps are lazy (generator-based) except write_to steps which materialize.
     """
 
     def __init__(self, steps: list[Step]):

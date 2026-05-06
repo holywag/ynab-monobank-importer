@@ -6,6 +6,7 @@ Each step is a callable: Iterable[YnabTransaction] -> Iterable[YnabTransaction].
 Registered classes implement `filter(t) -> bool` and/or `map(t) -> YnabTransaction`.
 """
 
+from pprint import pprint as pp
 from collections.abc import Iterable
 from datetime import datetime
 
@@ -183,14 +184,14 @@ def build_steps(step_dicts: list[dict], ctx: PipelineContext) -> list:
     for step_dict in step_dicts:
         for step_type, params in step_dict.items():
             match step_type:
-                case 'read':
-                    steps.append(_build_read(ctx, params))
+                case 'read_from':
+                    steps.append(_build_read_from(ctx, params))
                 case 'filter':
                     steps.append(_build_filter(ctx, params))
                 case 'map':
                     steps.append(_build_map(ctx, params))
-                case 'write':
-                    steps.append(_build_write(ctx, params))
+                case 'write_to':
+                    steps.append(_build_write_to(ctx, params))
                 case _:
                     raise ValueError(f'Unknown pipeline step type: {step_type}')
     return steps
@@ -220,8 +221,8 @@ def _create_instance(ctx, params):
 
 
 def _build_read_from_source(ctx: PipelineContext, params: dict):
-    """Build a read step that creates transaction streams from bank sources."""
-    from_mapping = params['from_source']
+    """Build a read_from step that creates transaction streams from bank sources."""
+    from_mapping = params['source']
     tracking_mapping = params.get('tracking', {})
     time_range_cfg = params.get('time_range')
 
@@ -251,13 +252,13 @@ def _build_read_from_source(ctx: PipelineContext, params: dict):
     return step
 
 
-def _build_read_from_budget(ctx: PipelineContext, params: dict):
-    """Build a read step that creates transaction streams from a YNAB budget."""
+def _build_read_from_ynab_api(ctx: PipelineContext, params: dict):
+    """Build a read_from step that creates transaction streams from a YNAB budget."""
     time_range_cfg = params.get('time_range')
 
     def step(stream: Iterable[YnabTransaction]) -> Iterable[YnabTransaction]:
         tr = resolve_time_range(time_range_cfg) if time_range_cfg else None
-        for budget_key, accounts in params['from_budget'].items():
+        for budget_key, accounts in params['ynab_api'].items():
             budget = ctx.budgets[budget_key]
             wrapper = ynab_api.SingleBudgetYnabApiWrapper(
                 ynab_api.YnabApiWrapper(budget.token), budget.budget_name)
@@ -267,14 +268,14 @@ def _build_read_from_budget(ctx: PipelineContext, params: dict):
     return step
 
 
-def _build_read(ctx: PipelineContext, params: dict):
-    """Build a read step that creates transaction stream."""
-    if 'from_source' in params:
+def _build_read_from(ctx: PipelineContext, params: dict):
+    """Build a read_from_from step that creates transaction stream."""
+    if 'source' in params:
         return _build_read_from_source(ctx, params)
-    elif 'from_budget' in params:
-        return _build_read_from_budget(ctx, params)
+    elif 'ynab_api' in params:
+        return _build_read_from_ynab_api(ctx, params)
     else:
-        raise ValueError(f'Cannot recognize read params: {list(params.keys())}')
+        raise ValueError(f'Cannot recognize read_from params: {list(params.keys())}')
 
 
 def _build_filter(ctx, params):
@@ -297,9 +298,9 @@ def _build_map(ctx: PipelineContext, params):
     return step
 
 
-def _build_write(ctx: PipelineContext, params: dict):
-    """Build a write step. Creates new or updates existing transactions."""
-    budget_key = params['to']
+def _build_write_to(ctx: PipelineContext, params: dict):
+    """Build a write_to step. Creates new or updates existing transactions."""
+    budget_key = params['ynab_api']
     budget = ctx.budgets[budget_key]
     timestamp_file = params.get('timestamp')
 
