@@ -2,6 +2,8 @@
 
 Steps are registered by name and instantiated from YAML config.
 Each step is a callable: Iterable[YnabTransaction] -> Iterable[YnabTransaction].
+
+Registered classes implement `filter(t) -> bool` and/or `map(t) -> YnabTransaction`.
 """
 
 from collections.abc import Iterable
@@ -20,41 +22,31 @@ import ynab_api
 
 # --- Registry ---
 
-_FILTERS: dict[str, type] = {}
-_MAPPERS: dict[str, type] = {}
+_REGISTRY: dict[str, type] = {}
 
 
-def register_filter(name):
-    """Register a filter callable by name for use in pipeline YAML."""
+def register_method(name):
+    """Register a pipeline method class by name. The class should implement
+    `filter(self, t) -> bool` and/or `map(self, t) -> YnabTransaction`."""
     def decorator(cls):
-        _FILTERS[name] = cls
+        _REGISTRY[name] = cls
         return cls
     return decorator
 
 
-def register_mapper(name):
-    """Register a mapper callable by name for use in pipeline YAML."""
-    def decorator(cls):
-        _MAPPERS[name] = cls
-        return cls
-    return decorator
+# --- Built-in methods ---
 
-
-# --- Built-in filters ---
-
-@register_filter('deduplicate_transfers')
-class DeduplicateTransfersFilter:
+@register_method('deduplicate_transfers')
+class DeduplicateTransfers:
     """Removes duplicate transfer transactions between YNAB accounts."""
     def __init__(self, **kwargs):
         self._filter = TransferFilter()
 
-    def __call__(self, t: YnabTransaction) -> bool:
+    def filter(self, t: YnabTransaction) -> bool:
         return self._filter(t)
 
 
-# --- Built-in mappers ---
-
-@register_mapper('payee')
+@register_method('payee')
 class PayeeMapper:
     """Maps transaction payee using regex aliases from a YAML file."""
     def __init__(self, mappings: str, **kwargs):
@@ -66,7 +58,7 @@ class PayeeMapper:
             if regexes
         )
 
-    def __call__(self, t: YnabTransaction) -> YnabTransaction:
+    def map(self, t: YnabTransaction) -> YnabTransaction:
         payee_name = t.detail.payee_name or ''
         mapped = self._payee_map.get(payee_name)
         if mapped:
@@ -74,7 +66,7 @@ class PayeeMapper:
         return t
 
 
-@register_mapper('categorize')
+@register_method('categorize')
 class CategorizeMapper:
     """Maps transaction category using payee/MCC rules from a YAML file.
     Resolves category_id via YNAB API."""
@@ -91,12 +83,11 @@ class CategorizeMapper:
             for entry in categories_data
             for mcc in entry.get('match', {}).get('mcc', [])
         }
-        # Pre-fetch category tree for ID resolution
         budget_cfg = ctx.budgets[budget]
         self._ynab = ynab_api.SingleBudgetYnabApiWrapper(
             ynab_api.YnabApiWrapper(budget_cfg.token), budget_cfg.budget_name)
 
-    def __call__(self, t: YnabTransaction) -> YnabTransaction:
+    def map(self, t: YnabTransaction) -> YnabTransaction:
         if not t.detail.category_id:
             payee_name = t.detail.payee_name or ''
             mcc = t.bank_transaction.mcc if t.bank_transaction else None
@@ -106,32 +97,35 @@ class CategorizeMapper:
         return t
 
 
-@register_mapper('change_date')
+@register_method('change_date')
 class ChangeDateMapper:
     """Alters transaction date."""
     def __init__(self, year=None, **kwargs):
         self.year = year
 
-    def __call__(self, t: YnabTransaction) -> YnabTransaction:
+    def map(self, t: YnabTransaction) -> YnabTransaction:
         if self.year:
             t.detail.var_date = t.detail.var_date.replace(year=self.year)
         return t
 
 
-@register_filter('pre_filter_to_convert_to_uah_by_memo')
-class PreFilterConvertToEurByMemo:
-    RE=re.compile(
+@register_method('convert_to_uah_by_memo')
+class ConvertToUahByMemo:
+    """Filters eligible transactions and converts EUR memo amounts to UAH.
+    Also re-formats memo to "<optional description> <euro sign><amount in {0:,.2f}>".
+    """
+
+    MEMO_RE = re.compile(
         r'^\s*(?:(?P<text_before>[^\d$€()]+?)'                  # text_before
         r'\s*[-( ]*\s*)?'                                       # delim and/or '('
         r'(?P<currency>[€$])?'                                  # currency symbol
         r'(?P<amount>[\d,]+(?:\.\d{1,2})?)'                     # amount
         r'(?:\s*[-) ]\s*(?P<text_after>[^\d€()]+?)?)?\s*$')     # delim and/or ')' and text_after
-    
-    def __init__(self, *args, **kwargs):
-        pass
-    
-    def __call__(self, t: YnabTransaction) -> bool:
-        # Skip transfers
+
+    def __init__(self, **kwargs):
+        self.ex_rate_cache = {}
+
+    def filter(self, t: YnabTransaction) -> bool:
         if t.detail.transfer_account_id:
             return False
         # Skip splits (for now)
@@ -142,28 +136,15 @@ class PreFilterConvertToEurByMemo:
         if t.detail.amount:
             return False
         # Match memo and skip different currency.
-        if m := self.RE.match(t.detail.memo):
+        if m := self.MEMO_RE.match(t.detail.memo or ''):
             return m.group('currency') in (None, '€')
-
         return False
 
-
-@register_mapper('convert_to_uah_by_memo')
-class ConvertToEurByMemo:
-    """Converts a value found in memo to EUR according to NBU exchange rate.
-    Also re-formats memo to "<optional description> <euro sign><amount in {0:,.2f}>".
-    """
-
-    def __init__(self, *args, **kwargs):
-        self.prefilter = PreFilterConvertToEurByMemo(args, kwargs)
-        self.ex_rate_cache = {}
-
-    def __call__(self, t: YnabTransaction) -> YnabTransaction:
-        # Safeguard
-        if not self.prefilter(t):
+    def map(self, t: YnabTransaction) -> YnabTransaction:
+        if not self.filter(t):
             return t
 
-        m = self.prefilter.RE.match(t.detail.memo.replace(',', ''))
+        m = self.MEMO_RE.match(t.detail.memo or '')
 
         # Load ex rates cache if needed
         if t.detail.var_date not in self.ex_rate_cache:
@@ -181,8 +162,17 @@ class ConvertToEurByMemo:
         return t
 
 
+@register_method('currency_convert')
+class CurrencyConvert:
+    def __init__(self, **kwargs):
+        pass
 
-# TODO: register_mapper('currency_convert') — convert amounts between currencies
+    def filter(self, t: YnabTransaction) -> bool:
+        return t.detail.var_date == datetime(year=2015, month=2, day=10).date()
+
+    def map(self, t: YnabTransaction) -> YnabTransaction:
+        t.detail.amount = 10001
+        return t
 
 
 # --- Step builders ---
@@ -196,7 +186,7 @@ def build_steps(step_dicts: list[dict], ctx: PipelineContext) -> list:
                 case 'read':
                     steps.append(_build_read(ctx, params))
                 case 'filter':
-                    steps.append(_build_filter(params))
+                    steps.append(_build_filter(ctx, params))
                 case 'map':
                     steps.append(_build_map(ctx, params))
                 case 'write':
@@ -216,6 +206,17 @@ def _parse_account_mapping(
         result[source_account] = YnabAccountRef(
             name=ynab_name, budget=ctx.budgets[budget_key])
     return result
+
+
+def _create_instance(ctx, params):
+    """Create an instance of a registered method from step params."""
+    if isinstance(params, str):
+        name, kwargs = params, {}
+    else:
+        kwargs = dict(params)
+        name = kwargs.pop('type')
+    kwargs['ctx'] = ctx
+    return _REGISTRY[name](**kwargs)
 
 
 def _build_read_from_source(ctx: PipelineContext, params: dict):
@@ -276,35 +277,22 @@ def _build_read(ctx: PipelineContext, params: dict):
         raise ValueError(f'Cannot recognize read params: {list(params.keys())}')
 
 
-def _build_filter(params):
+def _build_filter(ctx, params):
     """Build a filter step from registry."""
-    if isinstance(params, str):
-        name, kwargs = params, {}
-    else:
-        kwargs = dict(params)
-        name = kwargs.pop('type')
-
-    filter_fn = _FILTERS[name](**kwargs)
+    instance = _create_instance(ctx, params)
 
     def step(stream: Iterable[YnabTransaction]) -> Iterable[YnabTransaction]:
-        return filter(filter_fn, stream)
+        return filter(instance.filter, stream)
 
     return step
 
 
 def _build_map(ctx: PipelineContext, params):
     """Build a map step from registry."""
-    if isinstance(params, str):
-        name, kwargs = params, {}
-    else:
-        kwargs = dict(params)
-        name = kwargs.pop('type')
-
-    kwargs['ctx'] = ctx
-    map_fn = _MAPPERS[name](**kwargs)
+    instance = _create_instance(ctx, params)
 
     def step(stream: Iterable[YnabTransaction]) -> Iterable[YnabTransaction]:
-        return map(map_fn, stream)
+        return map(instance.map, stream)
 
     return step
 
@@ -320,7 +308,7 @@ def _build_write(ctx: PipelineContext, params: dict):
             ynab_api.YnabApiWrapper(budget.token), budget.budget_name)
         transactions = list(stream)
 
-        to_create = [t for t in transactions if not t.detail.id]  # empty or None
+        to_create = [t for t in transactions if not t.detail.id]
         to_update = [t for t in transactions if t.detail.id]
 
         if to_create:
