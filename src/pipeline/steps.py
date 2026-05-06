@@ -120,8 +120,12 @@ class ChangeDateMapper:
 
 @register_filter('pre_filter_to_convert_to_uah_by_memo')
 class PreFilterConvertToEurByMemo:
-    # group(2) is the extracted value
-    RE=re.compile(r'^(€)?([0-9]+?(\.[0-9]+)?)$')
+    RE=re.compile(
+        r'^\s*(?:(?P<text_before>[^\d$€()]+?)'                  # text_before
+        r'\s*[-( ]*\s*)?'                                       # delim and/or '('
+        r'(?P<currency>[€$])?'                                  # currency symbol
+        r'(?P<amount>[\d,]+(?:\.\d{1,2})?)'                     # amount
+        r'(?:\s*[-) ]\s*(?P<text_after>[^\d€()]+?)?)?\s*$')     # delim and/or ')' and text_after
     
     def __init__(self, *args, **kwargs):
         pass
@@ -137,22 +141,24 @@ class PreFilterConvertToEurByMemo:
         # Should be 0 to be eligible for conversion.
         if t.detail.amount:
             return False
-        # Skip not matching transactions
-        if not self.RE.match(t.detail.memo.replace(',', '')):
-            return False
-        return True
+        # Match memo and skip different currency.
+        if m := self.RE.match(t.detail.memo):
+            return m.group('currency') in (None, '€')
+
+        return False
 
 
 @register_mapper('convert_to_uah_by_memo')
 class ConvertToEurByMemo:
-    """Converts a value found in memo to EUR according to NBU exchange rate."""
+    """Converts a value found in memo to EUR according to NBU exchange rate.
+    Also re-formats memo to "<optional description> <euro sign><amount in {0:,.2f}>".
+    """
+
     def __init__(self, *args, **kwargs):
         self.prefilter = PreFilterConvertToEurByMemo(args, kwargs)
         self.ex_rate_cache = {}
 
     def __call__(self, t: YnabTransaction) -> YnabTransaction:
-        # TODO: Handle mixed memo
-
         # Safeguard
         if not self.prefilter(t):
             return t
@@ -162,9 +168,12 @@ class ConvertToEurByMemo:
         # Load ex rates cache if needed
         if t.detail.var_date not in self.ex_rate_cache:
             self.ex_rate_cache = init_rates_cache(Currency.EUR, t.detail.var_date, datetime.now().date())
-        memo_amount = float(m.group(2))
+        memo_amount = float(m.group('amount'))
         # Re-format memo
-        t.detail.memo = f'€{memo_amount:,.2f}'
+        text_before = m.group('text_before') or m.group('text_after') or ''
+        if len(text_before) > 1:
+            text_before = text_before[0].capitalize() + text_before[1:]
+        t.detail.memo = f'{text_before} €{memo_amount:,.2f}'
         # Convert currency
         converted_amount = memo_amount * self.ex_rate_cache[t.detail.var_date]
         # Present in milliunits format
