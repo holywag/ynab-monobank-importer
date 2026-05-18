@@ -47,13 +47,11 @@ class BankApiSource(YnabTransactionSource):
             self._ynab_wrappers[budget_token] = YnabApiWrapper(budget_token)
         return self._ynab_wrappers[budget_token]
 
-    def _resolve_ynab_ids(self, ref: YnabAccountRef):
-        """Resolve YNAB account_id and transfer_payee_id from account ref."""
+    def _resolve_ynab_account(self, ref: YnabAccountRef):
+        """Resolve YNAB account from account ref."""
         wrapper = self._get_ynab_wrapper(ref.budget.token)
         budget_id = wrapper.get_budget_by_name(ref.budget.budget_name).id
-        account_id = wrapper.get_account_id_by_name(budget_id, ref.name)
-        transfer_payee_id = wrapper.get_transfer_payee_id_by_account_name(budget_id, ref.name)
-        return account_id, transfer_payee_id
+        return wrapper.get_account_by_name(budget_id, ref.name)
 
     def read(self) -> Iterable[YnabTransaction]:
         for account in self.api_conf.accounts:
@@ -73,7 +71,7 @@ class BankApiSource(YnabTransactionSource):
     def _to_ynab(self, t: BankTransaction, source_account_key: str) -> YnabTransaction:
         """Convert a BankTransaction to YnabTransaction with resolved YNAB IDs."""
         ref = self.ynab_mapping[source_account_key]
-        account_id, _ = self._resolve_ynab_ids(ref)
+        account = self._resolve_ynab_account(ref)
 
         transfer_account_id = None
         transfer_payee_id = None
@@ -81,7 +79,9 @@ class BankApiSource(YnabTransactionSource):
             transfer_key = f'{t.transfer_account.source_name}.{t.transfer_account.name}'
             transfer_ref = self.ynab_mapping.get(transfer_key)
             if transfer_ref:
-                transfer_account_id, transfer_payee_id = self._resolve_ynab_ids(transfer_ref)
+                transfer_acc = self._resolve_ynab_account(transfer_ref)
+                transfer_account_id = transfer_acc.id
+                transfer_payee_id = transfer_acc.transfer_payee_id
 
         detail = ynab.TransactionDetail(
             id='',
@@ -89,7 +89,7 @@ class BankApiSource(YnabTransactionSource):
             amount=t.amount * 10,
             payee_name=t.description,
             memo=t.comment,
-            account_id=account_id,
+            account_id=account.id,
             account_name=ref.name,
             payee_id=transfer_payee_id,
             transfer_account_id=transfer_account_id,
@@ -99,4 +99,4 @@ class BankApiSource(YnabTransactionSource):
             subtransactions=[],
         )
 
-        return YnabTransaction(detail=detail, bank_transaction=t)
+        return YnabTransaction(detail=detail, budget=ref.budget, bank_transaction=t)
