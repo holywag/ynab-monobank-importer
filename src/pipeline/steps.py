@@ -163,16 +163,41 @@ class ConvertToUahByMemo:
         return t
 
 
-@register_method('currency_convert')
-class CurrencyConvert:
+@register_method('convert_to_eur')
+class ConvertToEur:
     def __init__(self, **kwargs):
-        pass
-
-    def filter(self, t: YnabTransaction) -> bool:
-        return t.detail.var_date == datetime(year=2015, month=2, day=10).date()
+        self.ex_rate_cache = {}
 
     def map(self, t: YnabTransaction) -> YnabTransaction:
-        t.detail.amount = 10001
+        def _convert_with_sub(t: YnabTransaction, rate: float):
+            if t.detail.subtransactions:
+                total = 0
+                for subt in t.detail.subtransactions:
+                    subt.amount = int(subt.amount / rate)
+                    total += subt.amount
+                t.detail.amount = total
+            else:
+                t.detail.amount = int(t.detail.amount / rate)
+                
+        
+        m = ConvertToUahByMemo.MEMO_RE.match(t.detail.memo or '')
+        if m and m.group('currency') in (None, '€') and not t.detail.subtransactions:
+            sign = 1 if (t.detail.amount and t.detail.amount > 0) else -1
+            t.detail.amount = int(float(m.group('amount'))*1000) * sign
+            t.detail.memo = (f'{m.group("text_before") or ""} {m.group("text_after") or ""}').strip()
+        else:
+            if t.detail.var_date not in self.ex_rate_cache:
+                self.ex_rate_cache = init_rates_cache(Currency.EUR, t.detail.var_date, datetime.now().date())
+            rate = self.ex_rate_cache[t.detail.var_date]
+            if t.detail.subtransactions:
+                total = 0
+                for subt in t.detail.subtransactions:
+                    subt.amount = int(subt.amount / rate)
+                    total += subt.amount
+                t.detail.amount = total
+            else:
+                t.detail.amount = int(t.detail.amount / rate)
+
         return t
 
 
