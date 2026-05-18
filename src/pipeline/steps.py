@@ -288,7 +288,9 @@ def _build_read_from_ynab_api(ctx: PipelineContext, params: dict):
             wrapper = ynab_api.SingleBudgetYnabApiWrapper(
                 ynab_api.YnabApiWrapper(budget.token), budget.budget_name)
             for acc in accounts:
-                yield from wrapper.get_transactions_by_account(acc, tr.start.date())
+                for t in wrapper.get_transactions_by_account(acc, tr.start.date()):
+                    t.budget = budget
+                    yield t
 
     return step
 
@@ -324,27 +326,99 @@ def _build_map(ctx: PipelineContext, params):
 
 
 def _build_write_to(ctx: PipelineContext, params: dict):
-    """Build a write_to step. Creates new or updates existing transactions."""
+    """Build a write_to step. Creates new or updates existing transactions.
+
+    When a transaction's source budget differs from the destination,
+    budget-local IDs are re-mapped by name and transaction IDs are cleared.
+    """
     budget_key = params['ynab_api']
-    budget = ctx.budgets[budget_key]
+    dest_budget = ctx.budgets[budget_key]
     timestamp_file = params.get('timestamp')
+
+    _src_wrapper_cache: dict[str, ynab_api.SingleBudgetYnabApiWrapper] = {}
+
+    def _get_src_wrapper(budget):
+        key = f'{budget.token}:{budget.budget_name}'
+        if key not in _src_wrapper_cache:
+            _src_wrapper_cache[key] = ynab_api.SingleBudgetYnabApiWrapper(
+                ynab_api.YnabApiWrapper(budget.token), budget.budget_name)
+        return _src_wrapper_cache[key]
+
+    def _remap_cross_budget(t: YnabTransaction, dest_wrapper):
+        """Re-map budget-local IDs from source to destination budget."""
+        d = t.detail
+        src_wrapper = _get_src_wrapper(t.budget)
+
+        # Re-map account
+        if d.account_name:
+            try:
+                d.account_id = dest_wrapper.get_account_by_name(d.account_name).id
+            except ynab_api.YnabAccountNotFound:
+                pass
+
+        # Re-map transfer: look up name from source budget, resolve in dest
+        if d.transfer_account_id:
+            src_acc = src_wrapper.get_account_by_id(d.transfer_account_id)
+            if src_acc:
+                try:
+                    dest_acc = dest_wrapper.get_account_by_name(src_acc.name)
+                    d.transfer_account_id = dest_acc.id
+                    d.payee_id = dest_acc.transfer_payee_id
+                except ynab_api.YnabAccountNotFound:
+                    d.transfer_account_id = None
+                    d.payee_id = None
+            else:
+                d.transfer_account_id = None
+                d.payee_id = None
+        else:
+            d.payee_id = None
+
+        # Re-map category: look up name from source budget, resolve ID in dest
+        if d.category_id:
+            src_cat = src_wrapper.get_category_by_id(d.category_id)
+            if src_cat:
+                d.category_id = dest_wrapper.get_category_id_by_name(src_cat.group_name, src_cat.name)
+            else:
+                d.category_id = None
+
+        # Clear budget-local transaction IDs
+        d.id = ''
+        d.transfer_transaction_id = None
+        d.matched_transaction_id = None
+        d.import_id = None
+
+        # Re-map subtransaction categories and clear IDs
+        if d.subtransactions:
+            for sub in d.subtransactions:
+                sub.id = ''
+                sub.transfer_transaction_id = None
+                if sub.category_id:
+                    src_cat = src_wrapper.get_category_by_id(sub.category_id)
+                    sub.category_id = dest_wrapper.get_category_id_by_name(
+                        src_cat.group_name, src_cat.name) if src_cat else None
+                if not sub.transfer_account_id:
+                    sub.payee_id = None
 
     def step(stream: Iterable[YnabTransaction]) -> Iterable[YnabTransaction]:
         wrapper = ynab_api.SingleBudgetYnabApiWrapper(
-            ynab_api.YnabApiWrapper(budget.token), budget.budget_name)
+            ynab_api.YnabApiWrapper(dest_budget.token), dest_budget.budget_name)
         transactions = list(stream)
+
+        for t in transactions:
+            if t.budget and t.budget.budget_name != dest_budget.budget_name:
+                _remap_cross_budget(t, wrapper)
 
         to_create = [t for t in transactions if not t.detail.id]
         to_update = [t for t in transactions if t.detail.id]
 
         if to_create:
-            print(f'Creating {len(to_create)} transactions in "{budget.budget_name}"...')
+            print(f'Creating {len(to_create)} transactions in "{dest_budget.budget_name}"...')
             result = wrapper.create_transactions(to_create)
             if result:
                 print(f'-- Created: {len(result.transaction_ids)}')
 
         if to_update:
-            print(f'Updating {len(to_update)} transactions in "{budget.budget_name}"...')
+            print(f'Updating {len(to_update)} transactions in "{dest_budget.budget_name}"...')
             result = wrapper.update_transactions(to_update)
             if result:
                 print(f'-- Updated: {len(result.transaction_ids)}')

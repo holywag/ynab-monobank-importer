@@ -29,4 +29,5 @@ class YnabTransaction:
     fields (mcc, original description) not present in TransactionDetail.
     """
     detail: TransactionDetail
+    budget: conf.ResolvedBudget = None
     bank_transaction: BankTransaction = None
