@@ -120,7 +120,7 @@ class ConvertToUahByMemo:
         r'^\s*(?:(?P<text_before>[^\d$€()]+?)'                  # text_before
         r'\s*[-( ]*\s*)?'                                       # delim and/or '('
         r'(?P<currency>[€$])?'                                  # currency symbol
-        r'(?P<amount>[\d,]+(?:\.\d{1,2})?)'                     # amount
+        r'(?P<amount>[\d]+[\d,]*(?:\.\d{1,2})?)'                # amount
         r'(?:\s*[-) ]\s*(?P<text_after>[^\d€()]+?)?)?\s*$')     # delim and/or ')' and text_after
 
     def __init__(self, **kwargs):
@@ -181,9 +181,9 @@ class ConvertToEur:
                 
         
         m = ConvertToUahByMemo.MEMO_RE.match(t.detail.memo or '')
-        if m and m.group('currency') in (None, '€') and not t.detail.subtransactions:
+        if m and m.group('currency') == '€' and not t.detail.subtransactions:
             sign = 1 if (t.detail.amount and t.detail.amount > 0) else -1
-            t.detail.amount = int(float(m.group('amount'))*1000) * sign
+            t.detail.amount = int(float(m.group('amount').replace(',', ''))*1000) * sign
             t.detail.memo = (f'{m.group("text_before") or ""} {m.group("text_after") or ""}').strip()
         else:
             if t.detail.var_date not in self.ex_rate_cache:
