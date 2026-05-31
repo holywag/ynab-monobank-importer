@@ -411,17 +411,21 @@ def _build_write_to(ctx: PipelineContext, params: dict):
         to_create = [t for t in transactions if not t.detail.id]
         to_update = [t for t in transactions if t.detail.id]
 
+        BULK_SIZE = 1000
+
         if to_create:
             print(f'Creating {len(to_create)} transactions in "{dest_budget.budget_name}"...')
-            result = wrapper.create_transactions(to_create)
-            if result:
-                print(f'-- Created: {len(result.transaction_ids)}')
+            for i in range(0, len(to_create), BULK_SIZE):
+                result = wrapper.create_transactions(to_create[i:i + BULK_SIZE])
+                if result:
+                    print(f'-- Created: {len(result.transaction_ids)}')
 
         if to_update:
             print(f'Updating {len(to_update)} transactions in "{dest_budget.budget_name}"...')
-            result = wrapper.update_transactions(to_update)
-            if result:
-                print(f'-- Updated: {len(result.transaction_ids)}')
+            for i in range(0, len(to_update), BULK_SIZE):
+                result = wrapper.update_transactions(to_update[i:i + BULK_SIZE])
+                if result:
+                    print(f'-- Updated: {len(result.transaction_ids)}')
 
         if not to_create and not to_update:
             print('-- Nothing to import')
