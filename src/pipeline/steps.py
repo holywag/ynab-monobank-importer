@@ -50,9 +50,13 @@ class DeduplicateTransfers:
 @register_method('payee')
 class PayeeMapper:
     """Maps transaction payee using regex aliases from a YAML file."""
-    def __init__(self, mappings: str, **kwargs):
-        with open(mappings) as f:
-            payees_data = yaml.safe_load(f)
+    def __init__(self, mappings, **kwargs):
+        if isinstance(mappings, str):
+            with open(mappings) as f:
+                payees_data = yaml.safe_load(f)
+        else:
+            payees_data = mappings
+
         self._payee_map = RegexDict(
             (compile_pattern(*regexes), alias)
             for alias, regexes in payees_data.items()
