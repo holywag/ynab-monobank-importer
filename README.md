@@ -136,7 +136,7 @@ tracking:
 Statements are discovered by globbing `<path>/<iban>/` recursively for the engine's file
 type (e.g. `*.pdf`, `*.csv`).
 
-**Source types**: `monobank`, `pumb`, `pumb_credit`, `sensebank`, `abank`, `privatbank`, `ukrsibbank`, `millennium`, `tracking`. Filesystem sources take a `path`; `monobank` takes a `token` plus optional `retries` / `remove_cancelled`; `abank` additionally accepts `orig_amount`. (`ukrsibbank` has no parser yet and is only usable as a tracking source.)
+**Source types**: `monobank`, `pumb`, `sensebank`, `abank`, `privatbank`, `ukrsibbank`, `millennium`, `tracking`. Filesystem sources take a `path`; `monobank` takes a `token` plus optional `retries` / `remove_cancelled`; `abank` additionally accepts `orig_amount`. (`ukrsibbank` has no parser yet and is only usable as a tracking source.)
 
 ### Pipeline steps
 

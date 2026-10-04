@@ -18,7 +18,7 @@ class MonobankSourceConfig(BaseModel):
 
 
 class FilesystemSourceConfig(BaseModel):
-    type: Literal['pumb', 'pumb_credit', 'sensebank', 'privatbank', 'ukrsibbank', 'millennium']
+    type: Literal['pumb', 'sensebank', 'privatbank', 'ukrsibbank', 'millennium']
     path: str
     accounts: dict[str, AccountConfig]
 
