@@ -6,6 +6,7 @@ Each step is a callable: Iterable[YnabTransaction] -> Iterable[YnabTransaction].
 Registered classes implement `filter(t) -> bool` and/or `map(t) -> YnabTransaction`.
 """
 
+from pprint import pp
 import copy
 from dataclasses import dataclass
 from collections.abc import Iterable
@@ -155,7 +156,7 @@ class ConvertToUahByMemo:
         # Load ex rates cache if needed
         if t.detail.var_date not in self.ex_rate_cache:
             self.ex_rate_cache = init_rates_cache(Currency.EUR, t.detail.var_date, datetime.datetime.now().date())
-        memo_amount = float(m.group('amount'))
+        memo_amount = float(m.group('amount').replace(',', ''))
         # Re-format memo
         text_before = m.group('text_before') or m.group('text_after') or ''
         if len(text_before) > 1:
@@ -180,8 +181,8 @@ class FixAmount:
         return t
 
 
-@register_method('convert_to_eur')
-class ConvertToEur:
+@register_method('migrate_to_eur')
+class MigrateToEur:
     """Converts UAH-denominated YNAB transactions to EUR using a FIFO cost-basis model.
     Inflows record the exchange rate at which UAH money entered the budget. Expenses are 
     converted at the inflow rates in arrival order. When inflows are drained (credit-card
@@ -194,7 +195,7 @@ class ConvertToEur:
         amount: int
         rate: float
 
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
         self.inflow_rates = []
         self.ex_rate_cache = {}
 
@@ -214,23 +215,22 @@ class ConvertToEur:
         return None
     
     def __convert_expense(self, amount: int, date: datetime.date, inflow_rates) -> int:
-        assert(amount < 0)
-        sign = -1 if amount < 0 else 1
         result = 0
-        abs_amount = abs(amount)
-        # Use inflow_rates first
-        while inflow_rates and abs_amount:
+        sign = -1 if amount < 0 else 1
+        # For expenses (amount < 0) use inflow_rates first
+        while inflow_rates and amount:
             front = inflow_rates[0]
-            step = min(front.amount, abs_amount)
-            result += int(step / front.rate)
-            abs_amount -= step
+            step = min(front.amount, abs(amount))
             front.amount -= step
+            step *= sign
+            amount -= step
+            result += int(step / front.rate)
             if not front.amount:
                 inflow_rates.pop(0)
-        # Credit card scenario - no inflow, balance is negative, so use rate db
-        if abs_amount:
-            result += int(abs_amount / self.__learn_rate(date))
-        return result * sign
+        # Use rate db for credit card scenario (no inflow, balance is negative)
+        if amount:
+            result += int(amount / self.__learn_rate(date))
+        return result
 
     def map(self, t: YnabTransaction) -> YnabTransaction:
         if t.detail.payee_name == 'Inflow: Ready to Assign' and t.detail.amount > 0: 
