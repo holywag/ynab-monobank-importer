@@ -6,9 +6,10 @@ Each step is a callable: Iterable[YnabTransaction] -> Iterable[YnabTransaction].
 Registered classes implement `filter(t) -> bool` and/or `map(t) -> YnabTransaction`.
 """
 
-from pprint import pprint as pp
+import copy
+from dataclasses import dataclass
 from collections.abc import Iterable
-from datetime import datetime
+import datetime
 
 import yaml, re
 
@@ -153,7 +154,7 @@ class ConvertToUahByMemo:
 
         # Load ex rates cache if needed
         if t.detail.var_date not in self.ex_rate_cache:
-            self.ex_rate_cache = init_rates_cache(Currency.EUR, t.detail.var_date, datetime.now().date())
+            self.ex_rate_cache = init_rates_cache(Currency.EUR, t.detail.var_date, datetime.datetime.now().date())
         memo_amount = float(m.group('amount'))
         # Re-format memo
         text_before = m.group('text_before') or m.group('text_after') or ''
@@ -169,39 +170,82 @@ class ConvertToUahByMemo:
 
 @register_method('convert_to_eur')
 class ConvertToEur:
+    """Converts UAH-denominated YNAB transactions to EUR using a FIFO cost-basis model.
+    Inflows record the exchange rate at which UAH money entered the budget. Expenses are 
+    converted at the inflow rates in arrival order. When inflows are drained (credit-card
+    overrun), it falls back to NBU's published UAH/EUR rate for the transaction date. 
+    Transactions whose memo states an explicit EUR amount short-circuit the conversion.
+    """
+    
+    @dataclass
+    class InflowRate:
+        amount: int
+        rate: float
+
     def __init__(self, **kwargs):
+        self.inflow_rates = []
         self.ex_rate_cache = {}
 
-    def map(self, t: YnabTransaction) -> YnabTransaction:
-        def _convert_with_sub(t: YnabTransaction, rate: float):
-            if t.detail.subtransactions:
-                total = 0
-                for subt in t.detail.subtransactions:
-                    subt.amount = int(subt.amount / rate)
-                    total += subt.amount
-                t.detail.amount = total
-            else:
-                t.detail.amount = int(t.detail.amount / rate)
-                
-        
+    def __learn_rate(self, date: datetime.date) -> float:
+        if date not in self.ex_rate_cache:
+            self.ex_rate_cache |= init_rates_cache(Currency.EUR, date, datetime.datetime.now().date())
+        return self.ex_rate_cache[date]
+
+    def __parse_amount_from_memo(self, t: YnabTransaction) -> float|None:
+        """Returns amount parsed from transaction memo and updates memo.
+        """
         m = ConvertToUahByMemo.MEMO_RE.match(t.detail.memo or '')
         if m and m.group('currency') == '€' and not t.detail.subtransactions:
             sign = 1 if (t.detail.amount and t.detail.amount > 0) else -1
-            t.detail.amount = int(float(m.group('amount').replace(',', ''))*1000) * sign
             t.detail.memo = (f'{m.group("text_before") or ""} {m.group("text_after") or ""}').strip()
+            return float(m.group('amount').replace(',', '')) * sign
+        return None
+    
+    def __convert_expense(self, amount: int, date: datetime.date, inflow_rates) -> int:
+        assert(amount < 0)
+        sign = -1 if amount < 0 else 1
+        result = 0
+        abs_amount = abs(amount)
+        # Use inflow_rates first
+        while inflow_rates and abs_amount:
+            front = inflow_rates[0]
+            step = min(front.amount, abs_amount)
+            result += int(step / front.rate)
+            abs_amount -= step
+            front.amount -= step
+            if not front.amount:
+                inflow_rates.pop(0)
+        # Credit card scenario - no inflow, balance is negative, so use rate db
+        if abs_amount:
+            result += int(abs_amount / self.__learn_rate(date))
+        return result * sign
+
+    def map(self, t: YnabTransaction) -> YnabTransaction:
+        if t.detail.payee_name == 'Inflow: Ready to Assign' and t.detail.amount > 0: 
+            orig_amount = t.detail.amount
+            if memo_amount := self.__parse_amount_from_memo(t):
+                rate = abs(orig_amount / 1000 / memo_amount)
+                t.detail.amount = int(memo_amount * 1000)
+            else:
+                rate = self.__learn_rate(t.detail.var_date)
+                t.detail.amount = int(orig_amount / rate)
+            # Store rate of the inflow to use it for expenses
+            self.inflow_rates.append(self.InflowRate(orig_amount, rate))
+        elif memo_amount := self.__parse_amount_from_memo(t):
+            # Drain the inflow rates, but use the exact amount from memo.
+            self.__convert_expense(t.detail.amount, t.detail.var_date, self.inflow_rates)
+            t.detail.amount = int(memo_amount * 1000)
         else:
-            if t.detail.var_date not in self.ex_rate_cache:
-                self.ex_rate_cache = init_rates_cache(Currency.EUR, t.detail.var_date, datetime.now().date())
-            rate = self.ex_rate_cache[t.detail.var_date]
+            # Transfered money are not leaving the budget, so they should not pop the inflow rates.
+            inflow_rates = self.inflow_rates if t.detail.transfer_account_id is None else copy.deepcopy(self.inflow_rates)
             if t.detail.subtransactions:
                 total = 0
                 for subt in t.detail.subtransactions:
-                    subt.amount = int(subt.amount / rate)
+                    subt.amount = self.__convert_expense(subt.amount, t.detail.var_date, inflow_rates)
                     total += subt.amount
                 t.detail.amount = total
             else:
-                t.detail.amount = int(t.detail.amount / rate)
-
+                t.detail.amount = self.__convert_expense(t.detail.amount, t.detail.var_date, inflow_rates)
         return t
 
 
@@ -285,7 +329,7 @@ def _build_read_from_ynab_api(ctx: PipelineContext, params: dict):
     """Build a read_from step that creates transaction streams from a YNAB budget."""
     time_range_cfg = params.get('time_range')
 
-    def step(stream: Iterable[YnabTransaction]) -> Iterable[YnabTransaction]:
+    def _do_read(stream: Iterable[YnabTransaction]) -> Iterable[YnabTransaction]:
         tr = resolve_time_range(time_range_cfg) if time_range_cfg else None
         for budget_key, accounts in params['ynab_api'].items():
             budget = ctx.budgets[budget_key]
@@ -295,6 +339,9 @@ def _build_read_from_ynab_api(ctx: PipelineContext, params: dict):
                 for t in wrapper.get_transactions_by_account(acc, tr.start.date()):
                     t.budget = budget
                     yield t
+
+    def step(stream: Iterable[YnabTransaction]) -> Iterable[YnabTransaction]:
+        yield from sorted(_do_read(stream), key=lambda t: t.detail.var_date)
 
     return step
 
@@ -436,7 +483,7 @@ def _build_write_to(ctx: PipelineContext, params: dict):
 
         if timestamp_file:
             with open(timestamp_file, 'w') as f:
-                f.write(datetime.now().astimezone().isoformat())
+                f.write(datetime.datetime.now().astimezone().isoformat())
             print(f'Saved timestamp to {timestamp_file}')
 
         return iter(transactions)
