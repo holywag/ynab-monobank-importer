@@ -261,6 +261,22 @@ class ConvertToEur:
         return t
 
 
+@register_method('progress_tracker')
+class ProgressTracker:
+    def __init__(self, *args, **kwargs):
+        self._count = 0
+        self.last_update = datetime.datetime.now()
+    
+    def map(self, t: YnabTransaction) -> YnabTransaction:
+        if self._count == 0:
+            print('Start processing')
+        self._count += 1
+        if (self.last_update - datetime.datetime.now()) >= datetime.timedelta(seconds=5):
+            self.last_update = datetime.datetime.now()
+            print(f'Processed {self._count} transactions')
+        return t
+
+
 # --- Step builders ---
 
 def build_steps(step_dicts: list[dict], ctx: PipelineContext) -> list:
