@@ -167,6 +167,18 @@ class ConvertToUahByMemo:
         t.detail.amount = -int(converted_amount*1000)
         return t
 
+@register_method("fix_amount")
+class FixAmount:
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def filter(self, t: YnabTransaction) -> bool:
+        return not t.detail.transfer_account_id and t.detail.amount < 0
+    
+    def map(self, t: YnabTransaction) -> YnabTransaction:
+        t.detail.amount = round(t.detail.amount * 1.010775693976992)
+        return t
+
 
 @register_method('convert_to_eur')
 class ConvertToEur:
