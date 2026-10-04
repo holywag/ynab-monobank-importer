@@ -33,13 +33,25 @@ class BankApiName(StrEnum):
 
 
 @dataclass
+class MonoOptions:
+    """Monobank-specific source options."""
+    n_retries: int = 5
+    remove_cancelled_statements: bool = True
+
+
+@dataclass
+class AbankOptions:
+    """A-Bank-specific source options."""
+    orig_amount: bool = False  # use original-currency amount instead of UAH
+
+
+@dataclass
 class BankApiConfiguration:
     type: BankApiName    # bank type (was 'name')
     name: str            # source key in YAML (e.g. 'mono_main')
     token: str
-    n_retries: int
-    remove_cancelled_statements: bool
     accounts: list[BankAccountConfiguration]
+    options: object | None = None  # bank-specific options (MonoOptions, AbankOptions, …)
 
 
 class RegexDict:

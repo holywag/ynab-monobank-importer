@@ -11,11 +11,11 @@ load_dotenv()
 
 from .schema import (
     RootConfig, BudgetConfig, SourceConfig,
-    MonobankSourceConfig, TrackingSourceConfig,
+    MonobankSourceConfig, AbankSourceConfig, TrackingSourceConfig,
 )
 from model.configuration import (
-    BankAccountConfiguration, BankApiConfiguration, BankApiName,
-    PipelineContext, ResolvedBudget, TimeRange,
+    AbankOptions, BankAccountConfiguration, BankApiConfiguration, BankApiName,
+    MonoOptions, PipelineContext, ResolvedBudget, TimeRange,
 )
 
 
@@ -57,18 +57,20 @@ def load(config_path: str = 'config/config.yaml') -> PipelineContext:
                 type=BankApiName(src_cfg.type),
                 name=source_id,
                 token=src_cfg.token,
-                n_retries=src_cfg.retries,
-                remove_cancelled_statements=src_cfg.remove_cancelled,
                 accounts=source_accounts,
+                options=MonoOptions(
+                    n_retries=src_cfg.retries,
+                    remove_cancelled_statements=src_cfg.remove_cancelled,
+                ),
             )
         else:
             source_configs[source_id] = BankApiConfiguration(
                 type=BankApiName(src_cfg.type),
                 name=source_id,
                 token=src_cfg.path,
-                n_retries=0,
-                remove_cancelled_statements=False,
                 accounts=source_accounts,
+                options=AbankOptions(orig_amount=src_cfg.orig_amount)
+                    if isinstance(src_cfg, AbankSourceConfig) else None,
             )
 
     # Build resolved budgets

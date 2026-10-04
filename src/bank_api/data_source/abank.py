@@ -1,10 +1,14 @@
 from .fs import FilesystemBankApiEngine
+from model.configuration import AbankOptions
 import tabula
 import pandas as pd
 from pathlib import Path
 from datetime import datetime
 
 class Engine(FilesystemBankApiEngine):
+    def __init__(self, options: AbankOptions | None = None):
+        self.options = options or AbankOptions()
+
     @property
     def glob_pattern(self) -> str:
         return '*.pdf'
@@ -27,11 +31,12 @@ class Engine(FilesystemBankApiEngine):
         return df
 
     def parse_row(self, row: pd.Series) -> dict:
+        amount = row.amount_orig if self.options.orig_amount else row.amount_uah
         return {
             'time': datetime.strptime(row.date, '%d.%m.%Y\r%H:%M'),
-            'amount': int(row.amount_uah * 100),
+            'amount': int(amount * 100),
             'description': row.description,
             'mcc': row.mcc
-        } | ({} if row.currency != 'EUR' else {
-            'comment': f'€{abs(row.amount_orig):,.2f}'
+        } | ({} if self.options.orig_amount else {
+            'comment': f'{abs(row.amount_orig):,.2f}'
         })

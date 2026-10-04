@@ -18,8 +18,15 @@ class MonobankSourceConfig(BaseModel):
 
 
 class FilesystemSourceConfig(BaseModel):
-    type: Literal['pumb', 'pumb_credit', 'sensebank', 'abank', 'privatbank', 'ukrsibbank', 'millennium']
+    type: Literal['pumb', 'pumb_credit', 'sensebank', 'privatbank', 'ukrsibbank', 'millennium']
     path: str
+    accounts: dict[str, AccountConfig]
+
+
+class AbankSourceConfig(BaseModel):
+    type: Literal['abank']
+    path: str
+    orig_amount: bool = False
     accounts: dict[str, AccountConfig]
 
 
@@ -29,7 +36,7 @@ class TrackingSourceConfig(BaseModel):
 
 
 SourceConfig = Annotated[
-    MonobankSourceConfig | FilesystemSourceConfig | TrackingSourceConfig,
+    MonobankSourceConfig | FilesystemSourceConfig | AbankSourceConfig | TrackingSourceConfig,
     Field(discriminator='type'),
 ]
 

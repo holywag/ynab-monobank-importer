@@ -11,7 +11,7 @@ def create(c: conf.BankApiConfiguration) -> BankApi:
         case conf.BankApiName.SENSE:
             return FilesystemBankApi(c, sensebank.Engine())
         case conf.BankApiName.ABANK:
-            return FilesystemBankApi(c, abank.Engine())
+            return FilesystemBankApi(c, abank.Engine(c.options))
         case conf.BankApiName.PB:
             return FilesystemBankApi(c, privatbank.Engine())
         case conf.BankApiName.MILLENNIUM:
