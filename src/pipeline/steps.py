@@ -6,8 +6,8 @@ Each step is a callable: Iterable[YnabTransaction] -> Iterable[YnabTransaction].
 Registered classes implement `filter(t) -> bool` and/or `map(t) -> YnabTransaction`.
 """
 
-from pprint import pp
 import copy
+import string
 from dataclasses import dataclass
 from collections.abc import Iterable
 import datetime
@@ -258,6 +258,52 @@ class MigrateToEur:
                 t.detail.amount = total
             else:
                 t.detail.amount = self.__convert_expense(t.detail.amount, t.detail.var_date, inflow_rates)
+        return t
+
+
+class _SafeFormatter(string.Formatter):
+    """Formatter that only allows plain positional fields ({} / {0}).
+
+    Rejects attribute and index access ({0.x}, {0[y]}) so a format template
+    can never traverse into object internals (e.g. ...__globals__) regardless
+    of what field values or templates it is given.
+    """
+    def get_field(self, field_name, args, kwargs):
+        # Empty '{}' fields are auto-numbered to digit strings before this call.
+        if not field_name.isdigit():
+            raise ValueError(f'Unsafe field {{{field_name}}} in log format; '
+                             'only positional placeholders are allowed')
+        return self.get_value(int(field_name), args, kwargs), field_name
+
+
+_SAFE_FORMATTER = _SafeFormatter()
+
+
+@register_method('log')
+class LogMapper:
+    """Pass-through mapper that prints selected transaction detail fields.
+
+    `fields.detail` lists the TransactionDetail attribute names to print.
+    `format` is an optional template with positional `{}` placeholders filled
+    with those values in order; without it, values are printed tab-separated:
+        format: "{} {} {}\\n{}"
+        fields:
+          detail:
+            - account_name
+            - payee_name
+            - var_date
+            - amount
+    """
+    def __init__(self, fields: dict, format: str = None, **kwargs):
+        self.detail_fields = fields.get('detail', [])
+        self.format = format
+
+    def map(self, t: YnabTransaction) -> YnabTransaction:
+        values = [getattr(t.detail, attr, None) for attr in self.detail_fields]
+        if self.format:
+            print(_SAFE_FORMATTER.format(self.format, *values))
+        else:
+            print(*values, sep='\t')
         return t
 
 
